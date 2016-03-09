@@ -1,22 +1,35 @@
 ##
 ##	Игра для RaspberryPi с использованием дисплея MT-12232A
+##	проверка возможностей дисплея
 ##	ZeLDER
 ##
 
 
 import mtdriver as mt
+import time
 
+
+_frameRateSec = 0.5
 
 def setup():
 	mt.lcdInit()  	# инициализация
+	print("clear")
 	mt.lcdClear()	# очистка экрана
+	_frameRateSec = 0.5 # FPS
+	print("inited")
 	return 0
 
 
 def loop():
-	# TODO: time step !
-	update()
-	render()
+	inGame = True
+	while(inGame):
+		try:
+			update()
+			time.sleep(_frameRateSec)
+			render()
+		except KeyboardInterrupt:
+			inGame = False
+			print("exit game")
 	return 0
 
 
@@ -26,12 +39,14 @@ def loop():
 def update():
 	mt.mtxClearMatrix()
 
-	mt.mtxPutPixel(1, 1, 1) 	#рисуем
-	mt.mtxPutPixel(1, 2, 1)
-	mt.mtxPutPixel(1, 3, 1)
-	mt.mtxPutPixel(1, 4, 1)
-	mt.mtxPutPixel(1, 5, 1)
-	mt.mtxPutPixel(1, 6, 1)
+
+	mt.mtxPutPixel(0, 1, 1) 	#рисуем
+	mt.mtxPutPixel(0, 2, 1)
+	mt.mtxPutPixel(0, 3, 1)
+	mt.mtxPutPixel(0, 4, 1)
+	mt.mtxPutPixel(0, 5, 1)
+	mt.mtxPutPixel(0, 6, 1)
+	mt.mtxPutPixel(121, 9, 1)
 
 	return 0
 
