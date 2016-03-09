@@ -18,14 +18,15 @@
 
 #
 # Пример:
+#	import mtdriver as mt
 #	def setup():
-#		lcdInit()  #инициализация
-#		lcdClear() #очистка экрана
+#		mt.lcdInit()  				#инициализация
+#		mt.lcdClear() 				#очистка экрана
 #	def loop():
-#		mtxClearMatrix() 		#очистка матрицы
-#		mtxPutPixel(1, 1, 1) 	#рисуем
+#		mt.mtxClearMatrix() 		#очистка матрицы
+#		mt.mtxPutPixel(1, 1, 1) 	#рисуем в матрицу
 #		#..
-#		lcdDraw()				#рендер конечной картинки на экран
+#		mt.lcdDraw()				#рендер конечной картинки на экран
 
 
 
@@ -86,4 +87,15 @@ def mtxPutPixel(x, y, bit):
 	else:
 		__lcd_matrix[x][int(y / __mtlcd_pagesize)] &= 0 << (y % 8);
 
+
+
+
+#################################
+#								
+#			 system
+#
+#
+
+def __mtsys_WriteByte(b, cd, lr):
+	return 0
 
