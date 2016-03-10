@@ -67,6 +67,7 @@ __mtlcd_heigth = 32
 # инициализация дисплея (драйвера)
 def lcdInit():
 	s_setup()
+	s_lcdInit()
 	__lcd_matrix = [[0 for x in range(__mtlcd_width)] for x in range(__mtlcd_pagecount)] 
 	return 0
 
@@ -259,7 +260,7 @@ def s_writeByte(b, cd, lr):
 	s_mtE(0)
 	s_delayNs(160.0)	#>160
 	s_mtE(1)
-	s_delayNs(2000.0 - 40.0 - 160.0)
+	s_delayNs(200.0 - 40.0 - 160.0) #2000.0 - 40.0 - 160.0
 def s_writeCodeL(b):
 	s_writeByte(b, 0, 1)
 def s_writeCodeR(b):
