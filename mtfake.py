@@ -20,6 +20,10 @@ def lcdInit():
 	print("MT FAKE inited!!!")
 	return 0
 
+# распиновка Raspberry
+def lcdSetPins(a0, rw, e, res, cs, d0, d1, d2, d3, d4, d5, d6, d7):
+	return 0
+	
 # очистка матрицы и обновление дисплея
 def lcdClear():
 	return 0
