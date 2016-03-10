@@ -5,11 +5,13 @@
 ##
 
 
-import mtdriver as mt
+#import mtdriver as mt
+import mtfake as mt
 import time
+import datetime as dt
 
 
-_frameRateSec = 0.2 	# FPS
+_frameRateSec = 1.0/3 	# FPS
 
 def setup():
 	mt.lcdInit()  	# инициализация
@@ -19,16 +21,33 @@ def setup():
 	return 0
 
 
+_lastTime = 0.0
+
+def start():
+	global _lastTime
+	_lastTime = dt.datetime.now()
+	loop() #go
+	return 0
+
+
 def loop():
+	global _lastTime
 	inGame = True
 	while(inGame):
 		try:
+			mt.mtxClearMatrix()
 			update()
-			time.sleep(_frameRateSec)
-			render()
+			mt.lcdDraw()
+			# timer fps
+			now = dt.datetime.now()
+			delta = (now -_lastTime).total_seconds()
+			d = _frameRateSec - delta
+			if (d > 0.0):
+				time.sleep(d)
+			_lastTime = dt.datetime.now()
 		except KeyboardInterrupt:
 			inGame = False
-			print("exit game")
+			print("\nexit game")
 	return 0
 
 
@@ -44,7 +63,6 @@ _xpos = 0
 def update():
 	global _xpos
 
-	mt.mtxClearMatrix()
 
 	mt.mtxPutPixel(0, 1, 1) 	#рисуем
 	mt.mtxPutPixel(0, 2, 1)
@@ -62,13 +80,6 @@ def update():
 	return 0
 
 
-#
-# рендер изображения
-#
-def render():
-	mt.lcdDraw()
-	return 0
-
 
 
 
@@ -76,4 +87,4 @@ def render():
 
 # go
 setup()
-loop()
+start()

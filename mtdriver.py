@@ -310,13 +310,11 @@ def s_lcdDraw():
 		# draw
 		for c in range(0, 61):
 			s_writeDataL(__lcd_matrix[c][p])
-
 		# set address
 		s_writeCodeR(p|0xB8)
 		s_writeCodeR(0x00)
 		# draw
 		for c in range(61, 122):
 			s_writeDataR(__lcd_matrix[c][p])
-
 	return 0
 
