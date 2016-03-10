@@ -9,12 +9,12 @@
 #		lcdInit()	- инициализация дисплея (драйвера)
 #		lcdClear()	- очистка матрицы и обновление дисплея
 #		lcdDraw()	- обновление дисплея данными из матрицы
+#		lcdSetPins(a0, rw, e, res, cs, d0, d1, d2, d3, d4, d5, d6, d7)	- распиновка Raspberry
 #
 #	- работа с матрицой	
 #		mtxClearMatrix()		- очистка матрицы (без обновления дисплея)
 #		mtxPutPixel(x, y, bit)	- помещение пикселя в матрицу (без вывода на экран)
 #
-
 
 #
 # Пример:
@@ -27,6 +27,25 @@
 #		mt.mtxPutPixel(1, 1, 1) 	#рисуем в матрицу
 #		#..
 #		mt.lcdDraw()				#рендер конечной картинки на экран
+
+#
+# Распиновка (default) для RaspberryPi 2
+# A0 = 4
+# RW = 17
+# E = 27
+# RES = 22
+# CS = 25
+# db0 = 18
+# db1 = 23
+# db2 = 24
+# db3 = 12
+# db4 = 6
+# db5 = 13
+# db6 = 19
+# db7 = 26
+#
+
+
 
 
 import RPi.GPIO as GPIO
@@ -49,6 +68,23 @@ __mtlcd_heigth = 32
 def lcdInit():
 	s_setup()
 	__lcd_matrix = [[0 for x in range(__mtlcd_width)] for x in range(__mtlcd_pagecount)] 
+	return 0
+
+# распиновка Raspberry
+def lcdSetPins(a0, rw, e, res, cs, d0, d1, d2, d3, d4, d5, d6, d7):
+	_p_a0 = a0
+	_p_rw = rw
+	_p_e = e
+	_p_res = res
+	_p_cs = cs
+	_db0 = d0
+	_db1 = d1
+	_db2 = d2
+	_db3 = d3
+	_db4 = d4
+	_db5 = d5
+	_db6 = d6
+	_db7 = d7
 	return 0
 
 # очистка матрицы и обновление дисплея
