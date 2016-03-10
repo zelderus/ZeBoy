@@ -152,7 +152,7 @@ _db6 = 19
 _db7 = 26
 
 
-
+# инициализация Пинов с Распберри
 def s_setup():
 ##    GPIO.setmode(GPIO.BOARD)
 	GPIO.setmode(GPIO.BCM)
@@ -166,7 +166,7 @@ def s_setup():
 	GPIO.setup(_p_res, GPIO.OUT)
 	GPIO.setup(_p_cs, GPIO.OUT)
 
-
+# Пины данных включаем на выход (передаем на дисплей данные)
 def s_dataLineToOut():
 	GPIO.setup(_db0, GPIO.OUT)
 	GPIO.setup(_db1, GPIO.OUT)
@@ -176,6 +176,7 @@ def s_dataLineToOut():
 	GPIO.setup(_db5, GPIO.OUT)
 	GPIO.setup(_db6, GPIO.OUT)
 	GPIO.setup(_db7, GPIO.OUT)
+# на вход из дисплея данные
 def s_dataLineToIn():
 	GPIO.setup(_db0, GPIO.IN)
 	GPIO.setup(_db1, GPIO.IN)
@@ -198,7 +199,7 @@ def s_delayNs(ns):
 
 
 
-
+# подача напряжения (лог 1 или 0) на Пины
 def s_mtA0(b):
 	GPIO.output(_p_a0, GPIO.HIGH if b > 0 else GPIO.LOW)
 def s_mtRW(b):
@@ -209,7 +210,6 @@ def s_mtRES(b):
 	GPIO.output(_p_res, GPIO.HIGH if b > 0 else GPIO.LOW)
 def s_mtCS(b):
 	GPIO.output(_p_cs, GPIO.HIGH if b > 0 else GPIO.LOW)
-
 def s_mtData(b):
 	GPIO.output(_db7, GPIO.HIGH if b&128>0 else GPIO.LOW)
 	GPIO.output(_db6, GPIO.HIGH if b&64>0 else GPIO.LOW)
@@ -220,7 +220,6 @@ def s_mtData(b):
 	GPIO.output(_db1, GPIO.HIGH if b&2>0 else GPIO.LOW)
 	GPIO.output(_db0, GPIO.HIGH if b&1>0 else GPIO.LOW)
 	return 0
-
 def s_mtGetData():
 	v = 0
 	b1 = GPIO.input(_db3);
@@ -250,6 +249,7 @@ def s_mtGetData():
 	return v
 
 
+# запись байта данных в дисплей (установка нужных сигналов и прочее)
 def s_writeByte(b, cd, lr):
 	s_mtRW(0)
 	s_mtA0(cd)
@@ -260,7 +260,6 @@ def s_writeByte(b, cd, lr):
 	s_delayNs(160.0)	#>160
 	s_mtE(1)
 	s_delayNs(2000.0 - 40.0 - 160.0)
-
 def s_writeCodeL(b):
 	s_writeByte(b, 0, 1)
 def s_writeCodeR(b):
@@ -270,7 +269,7 @@ def s_writeDataL(b):
 def s_writeDataR(b):
 	s_writeByte(b, 1, 0)
 
-
+# чтение байта данных от дисплея
 def s_readByte(cd, lr, rw):
 	b = 0
 	s_dataLineToIn()
@@ -285,7 +284,6 @@ def s_readByte(cd, lr, rw):
 	s_delayNs(2000.0 - 50.0 - 350.0)
 	s_dataLineToOut()	# restore
 	return b
-
 def s_readDataL():
 	return s_readByte(1, 1, 1)
 def s_readDataR():
@@ -296,9 +294,7 @@ def s_readStatusR():
 	return s_readByte(1, 0, 0)
 
 
-
-
-
+# инициализация дисплея
 def s_lcdInit():
 	s_mtE(1)
 	s_mtRES(0)
@@ -326,6 +322,7 @@ def s_lcdInit():
 	#s_writeCodeR(0xAE)
 
 
+# статус дисплея
 def s_lcdStatusView(b):
 	print("Busy: " + (str(1 if b&128>0 else 0)) + ", ADC: " + (str(1 if b&64>0 else 0)) + ", ON/OFF: " + (str(1 if b&32>0 else 0)) + ", RESET: " + (str(1 if b&16>0 else 0)))	
 def s_lcdStatus():
@@ -338,6 +335,9 @@ def s_lcdStatus():
 	s_lcdStatusView(b)
 	return 0
 
+
+# вывод на дисплей из массива данных. 
+# проход по всем страницам, по всей ширине двух кристалов.
 def s_lcdDraw():
 	for p in range(0,4):
 		# set address
