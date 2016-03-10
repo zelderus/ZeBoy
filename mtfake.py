@@ -23,14 +23,14 @@ def lcdInit():
 # распиновка Raspberry
 def lcdSetPins(a0, rw, e, res, cs, d0, d1, d2, d3, d4, d5, d6, d7):
 	return 0
-	
+
 # очистка матрицы и обновление дисплея
 def lcdClear():
 	return 0
 
 # обновление дисплея данными из матрицы
 def lcdDraw():
-	print("draw")
+	print(".")
 	return 0
 
 

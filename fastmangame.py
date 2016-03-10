@@ -5,10 +5,16 @@
 ##
 
 
-import mtdriver as mt
-#import mtfake as mt
+#import mtdriver as mt
+import mtfake as mt
 import time
 import datetime as dt
+
+import curses
+window = curses.initscr()
+window.nodelay(1)
+
+
 
 
 _frameRateSec = 1.0/3 	# FPS
@@ -24,7 +30,7 @@ def setup():
 _lastTime = 0.0
 
 def start():
-	global _lastTime
+	global _lastTime, _L
 	_lastTime = dt.datetime.now()
 	loop() #go
 	return 0
@@ -56,12 +62,31 @@ def loop():
 #
 
 _xpos = 0
+_ch = 0
+
+def input_thread(n):
+	while(True):
+		derp = input()
+		print("itrhread: " + str(derp))
+		n.append(derp)
+
+
 
 #
 # обновление логики игры
 #
 def update():
-	global _xpos
+	global _xpos, window
+
+
+	_ch = int(window.getch())
+	if (_ch == 97):
+		_xpos = _xpos - 1
+	if (_ch == 115):
+		_xpos = _xpos + 1
+	#print(str(_ch))
+	
+
 
 
 	mt.mtxPutPixel(0, 1, 1) 	#рисуем
@@ -71,9 +96,11 @@ def update():
 	mt.mtxPutPixel(0, 5, 1)
 	mt.mtxPutPixel(0, 6, 1)
 
-	_xpos = _xpos + 1
+	#_xpos = _xpos + 1
 	if _xpos > 122:
 		_xpos = 0
+	if _xpos < 0:
+		_xpos = 122
 	mt.mtxPutPixel(_xpos, 9, 1)
 		
 
@@ -84,7 +111,7 @@ def update():
 
 
 
-
-# go
-setup()
-start()
+if __name__ == "__main__" :
+	# go
+	setup()
+	start()
