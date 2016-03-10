@@ -17,6 +17,7 @@ import time
 
 # инициализация дисплея (драйвера)
 def lcdInit():
+	print("MT FAKE inited!!!")
 	return 0
 
 # очистка матрицы и обновление дисплея
