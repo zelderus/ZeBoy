@@ -23,12 +23,12 @@ def setup():
 def draw():
 
 	# рисуем в матрицу
-	mt.mtxPutPixel(0, 1, 1)
-	mt.mtxPutPixel(0, 2, 1)
-	mt.mtxPutPixel(0, 3, 1)
-	mt.mtxPutPixel(0, 4, 1)
-	mt.mtxPutPixel(0, 5, 1)
-	mt.mtxPutPixel(0, 6, 1)
+	mt.mtxPutPixel(1, 1, 1)
+	mt.mtxPutPixel(1, 2, 1)
+	mt.mtxPutPixel(1, 3, 1)
+	mt.mtxPutPixel(1, 4, 1)
+	mt.mtxPutPixel(1, 5, 1)
+	mt.mtxPutPixel(1, 6, 1)
 
 	# вывод на дисплей
 	mt.lcdDraw()

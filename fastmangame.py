@@ -5,8 +5,8 @@
 ##
 
 
-#import mtdriver as mt
-import mtfake as mt
+import mtdriver as mt
+#import mtfake as mt
 import time
 import datetime as dt
 
@@ -17,7 +17,7 @@ window.nodelay(1)
 
 
 
-_frameRateSec = 1.0/3 	# FPS
+_frameRateSec = 1.0/31 	# FPS
 
 def setup():
 	mt.lcdInit()  	# инициализация
@@ -61,6 +61,7 @@ def loop():
 # data
 #
 
+_xa = 0
 _xpos = 0
 _ch = 0
 
@@ -71,19 +72,54 @@ def input_thread(n):
 		n.append(derp)
 
 
+def fixposX(x, withCycle):
+	if x > 121:
+		x = 0 if withCycle else 121
+	if x < 0:
+		x = 121 if withCycle else 0
+	return x
 
+def fixposY(y, withCycle):
+	if y > 31:
+		y = 0 if withCycle else 31
+	if y < 0:
+		y = 31 if withCycle else 0
+	return y
+
+#
+# figures
+#
+def drawBlock3x3(x, y):
+	for xx in range(0,3):
+		for yy in range(0,3):
+			mt.mtxPutPixel(x+xx, y+yy, 1)
+
+def drawBlock6x6(x, y):
+	for xx in range(0,6):
+		for yy in range(0,6):
+			mt.mtxPutPixel(x+xx, y+yy, 1)
+
+
+
+_lastGetch = dt.datetime.now()
+_lastCh = -1
 #
 # обновление логики игры
 #
 def update():
-	global _xpos, window
+	global _xpos, _xa, _lastGetch, _lastCh
 
-
+	# KEYS
 	_ch = int(window.getch())
-	if (_ch == 97):
+	delta = (dt.datetime.now() -_lastGetch).total_seconds()
+	dStep = 0.02
+	if (_ch == 97 and (_lastCh != _ch or delta >= dStep)):
 		_xpos = _xpos - 1
-	if (_ch == 115):
+	if (_ch == 115 and (_lastCh != _ch or delta >= dStep)):
 		_xpos = _xpos + 1
+	_lastCh = _ch
+	_ch = 0
+	_lastGetch = dt.datetime.now()
 	#print(str(_ch))
 	
 
@@ -96,12 +132,13 @@ def update():
 	mt.mtxPutPixel(0, 5, 1)
 	mt.mtxPutPixel(0, 6, 1)
 
-	#_xpos = _xpos + 1
-	if _xpos > 122:
-		_xpos = 0
-	if _xpos < 0:
-		_xpos = 122
-	mt.mtxPutPixel(_xpos, 9, 1)
+	# auto
+	_xa = fixposX(_xa+1, True)
+	drawBlock6x6(_xa, 16)
+
+	# key
+	_xpos = fixposX(_xpos, False)
+	drawBlock6x6(_xpos, 9)
 		
 
 	return 0
