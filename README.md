@@ -22,6 +22,7 @@ Hard-проект.
 - mtfake.py (только для отладки)
 - fastmangame.py (игра для RaspberryPi с использованием дисплея MT-12232A)
 - statpic.py (простой пример вывода изображения на дисплей)
+- zep_at89c2051.py (programmator prog to write data to MK from file 'prog.bin')
 
 
 
