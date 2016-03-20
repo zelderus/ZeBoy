@@ -10,6 +10,8 @@
 #		mkInit()	- Init (MUST first)
 #		mkRead(fname)	- Read data from MK to file 'fname' ('log.txt')
 #		mkWrite(fname)	- Erase MK and Write data to MK from file 'fname' ('prog.bin')
+#		mkWriteByArr(bArr) - Erase MK and Write data to MK from array of bytes
+#		mkErase()	- Erase all data from MK
 #
 
 
@@ -17,8 +19,6 @@
 ## 			!!! WITH AUTOSTART !!!
 ##			   from 'prog.bin'
 ##
-
-
 
 
 import RPi.GPIO as GPIO
@@ -71,11 +71,26 @@ def mkRead(fname="log.txt"):
 #
 def mkWrite(fname="prog.bin"):
 	_eraseMk()
-	_writeToMk(fname, _fb, _bts)
+	_loadData(fname)
+	_writeToMk(_fb, _bts)
 	return 0
 
 
+#
+#	Erase MK and Write data to MK from array of bytes
+#
+def mkWriteByArr(byteArr):
+	_eraseMk()
+	_loadDataByArr(byteArr)
+	_writeToMk(_fb, _bts)
+	return 0
 
+#
+#	Erase all data from MK
+#
+def mkErase():
+	_eraseMk()
+	return 0
 
 
 
@@ -226,7 +241,7 @@ def _eraseMk():
 	print("-> erasing..")
 	print("RST H")
 	time.sleep(3.0)
-	_setRstH()
+	_setRst12()
 	_delayMs(1.0) #==
 	_setXl1(0)
 	_delayMs(1.0) #==
@@ -238,11 +253,11 @@ def _eraseMk():
 	# erase
 	print("RST 12")	
 	_setRst12() #!!
-	_delayMs(1.0) #==
+	#_delayMs(1.0) #==
 	_setPin(_p3_2, 0)
 	_delayMs(10.0)
 	_setPin(_p3_2, 1)
-	_delayMs(1.0) #==
+	_delayMs(6.0) #==
 	print("erase complete..")
 	_downAllPins()
 	time.sleep(2.0)
@@ -271,9 +286,9 @@ def _nextAddr():
 #
 # Write prog to MK from file 'prog.bin'
 #
-def _writeToMk(fname, firstByte, bts):
+def _writeToMk(firstByte, bts):
 	# data to write
-	_loadData(fname)
+	#_loadData(fname)
 	print("SETTING for WRITE -> Vcc: 5V; V12: yes")
 	print("-> writing..")
 	print("RST LOW")
@@ -292,8 +307,8 @@ def _writeToMk(fname, firstByte, bts):
 	_setModeWrite()
 	_delayMs(1.0) #==
 	# set data
-	print("first byte..")
-	print("byte: " + str(hex(firstByte)))
+	#print("first byte..")
+	#print("byte: " + str(hex(firstByte)))
 	_setData(firstByte)
 	_delayMs(1.0) #==
 	print("RST 12V")
@@ -307,7 +322,7 @@ def _writeToMk(fname, firstByte, bts):
 	_nextAddr()
 	for b in bts:
 		# set data
-		print("byte: " + str(hex(b)))
+		#print("byte: " + str(hex(b)))
 		_setData(b)
 		# pulse
 		_writePulse()
@@ -326,7 +341,7 @@ def _writeToMk(fname, firstByte, bts):
 # Read data from MK to file 'log.txt'
 #
 def _readFromMk(fname):
-	print("SETTING for READ -> Vcc: 3V3; V12: not")
+	print("SETTING for READ -> Vcc: 0!!; V12: not")
 	print("-> reading..")
 	print("Set RST to LOW")
 	time.sleep(3.0)
@@ -338,7 +353,9 @@ def _readFromMk(fname):
 	_delayMs(1.0) #==
 	# reset addr
 	#_setPin(_rst, 0)
-	_setRstH() # touch
+	_setRst12() # set 0
+	_delayMs(1.0) #==
+	_setRstH()
 	print("Set RST to HIGH")
 	time.sleep(3.0)
 	_delayMs(1.0) #==
@@ -389,7 +406,29 @@ def _loadData(fname):
 		# all other bytes
 		for bn in range(1, sf):
 			_bts.append(hex(block[bn]))
-	#_fb = 0x02
+	return 0
+
+#
+# Load data from array
+#
+def _loadDataByArr(byteArr):
+	global _fb, _bts
+	_bts = []
+	# read from file
+	blocksize = 2048
+	block = byteArr
+	
+	sf = len(block)
+	if (sf < 2):
+		print("too short program")
+		return 1
+	# first byte
+	_fb = block[0]
+	# all other bytes
+	for bn in range(1, sf):
+		_bts.append(block[bn])
+
+	#_bts.append(0x02)
 	#_bts.append(0x00)
 	#_bts.append(0x03)
 	#_bts.append(0x75)
@@ -399,6 +438,7 @@ def _loadData(fname):
 	#_bts.append(0x00)
 	#_bts.append(0x03)
 	return 0
+
 
 
 ## AUTOSTART
