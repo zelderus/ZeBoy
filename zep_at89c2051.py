@@ -15,11 +15,14 @@
 #
 
 
-##			
-## 			!!! WITH AUTOSTART !!!
-##			   from 'prog.bin'
-##
-
+#
+#	Example:
+#				import zep_at89c2051 as mk			# импорт драйвера программатора
+#				def initAndWrite():
+#					mk.mkInit()  					# инициализация
+#					mk.mkWrite("mktolcd.bin")		# запись
+#				initAndWrite()
+#
 
 import RPi.GPIO as GPIO
 import time
@@ -438,9 +441,3 @@ def _loadDataByArr(byteArr):
 	#_bts.append(0x00)
 	#_bts.append(0x03)
 	return 0
-
-
-
-## AUTOSTART
-mkInit()
-mkWrite("prog.bin")
