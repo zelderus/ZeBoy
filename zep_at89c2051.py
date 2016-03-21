@@ -1,7 +1,7 @@
 
 #
 #	Programm for write data to AT89C2051 by RaspberryPi2
-#	for PROGRAMMATOR PR2051.1
+#	for PROGRAMMATOR PR8051.1
 #	ZeLDER
 #
 
@@ -284,7 +284,7 @@ def _nextAddr():
 
 
 #
-# Write prog to MK from file 'prog.bin'
+# Write prog to MK
 #
 def _writeToMk(firstByte, bts):
 	# data to write
@@ -338,7 +338,7 @@ def _writeToMk(firstByte, bts):
 
 
 #
-# Read data from MK to file 'log.txt'
+# Read data from MK to file
 #
 def _readFromMk(fname):
 	print("SETTING for READ -> Vcc: 0!!; V12: not")
@@ -384,7 +384,7 @@ _bts = []
 
 
 #
-# Load data from file "prog.bin"
+# Load data from file
 #
 def _loadData(fname):
 	global _fb, _bts
