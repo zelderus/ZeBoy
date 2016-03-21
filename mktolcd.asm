@@ -5,7 +5,7 @@ ORG 0x00
 ; TODO: interrupts
 ; TODO: timers
 	
-; Основная программа
+; РћСЃРЅРѕРІРЅР°СЏ РїСЂРѕРіСЂР°РјРјР°
 ORG 0x0A
 MAIN:
 	
