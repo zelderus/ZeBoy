@@ -403,10 +403,12 @@ def _loadData(fname):
 			print("too short program")
 			return 1
 		# first byte
-		_fb = hex(block[0])
+		#_fb = hex(block[0])
+		_fb = block[0]
 		# all other bytes
 		for bn in range(1, sf):
-			_bts.append(hex(block[bn]))
+			#_bts.append(hex(block[bn]))
+			_bts.append(block[bn])
 	return 0
 
 #
