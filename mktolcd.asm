@@ -74,16 +74,32 @@ MAINLOOP:
 ;
 ; =====================
 DELAYMS:	; A = times
-	NOP
-	; TODO
+	MOV R6, #230
+	LX:
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		DJNZ R6, LX
+	MOV R7, #230
+	LB:
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		DJNZ R7, LB
 	RET
 DELAYNS:	; A = times
-	NOP
 	; TODO
+	ACALL DELAYMS
 	RET
 DELAYUS:	; A = times
-	NOP
 	; TODO
+	ACALL DELAYMS
 	RET
 	
 	
