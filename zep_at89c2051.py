@@ -309,9 +309,7 @@ def _writeToMk(firstByte, bts):
 	# mode: write
 	_setModeWrite()
 	_delayMs(1.0) #==
-	# set data
-	#print("first byte..")
-	#print("byte: " + str(hex(firstByte)))
+	# set first byte
 	_setData(firstByte)
 	_delayMs(1.0) #==
 	print("RST 12V")
@@ -324,8 +322,8 @@ def _writeToMk(firstByte, bts):
 	# next addr
 	_nextAddr()
 	for b in bts:
+		# TODO: check if 0xFF then skip and do _nextAddr() only !!!!!
 		# set data
-		#print("byte: " + str(hex(b)))
 		_setData(b)
 		# pulse
 		_writePulse()
