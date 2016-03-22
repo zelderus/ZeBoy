@@ -73,7 +73,26 @@ ORG 25H ;locate beginning of rest of program
 
 
 ;#################################################
-ORG 0x32 ;0x0A
+ORG 0x30 ;0x0A
+;; test
+DOTEST:
+	MOV B, #0x40	; get start addr
+	; write to RAM
+	MOV R1, B		; set start address
+	MOV @R1, #0x55	; write data
+	INC R1			; next addr
+	MOV @R1, #0x66	; write data
+	; read from RAM
+	MOV R1, B		; set start address
+	MOV A, R1		; read addr
+	MOV A, @R1		; read data
+	INC R1
+	MOV A, @R1		; read data
+	RET
+	
+	
+	
+
 ;; INIT
 INITIALIZE: ;set up control registers & ports
 	MOV TCON, #0x00
@@ -89,6 +108,7 @@ INITIALIZE: ;set up control registers & ports
 ;
 ; =====================
 MAIN:
+	ACALL DOTEST
 	ACALL INITIALIZE
 	ACALL LCDINIT
 	ACALL LCDCLEAR
@@ -258,7 +278,7 @@ LCDCLEAR:
 		MOV R0, #0x13
 		ACALL LCDWRITE_CODE_L
 		; left draw
-		MOV R0, #0x01 ; clear symbol
+		MOV R0, #0x03 ; clear symbol 	!!!!! DEBUG !!!!! for 2pixel lines
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_LEFT:
 			MOV A, R3
@@ -274,7 +294,7 @@ LCDCLEAR:
 		MOV R0, #0x00
 		ACALL LCDWRITE_CODE_R
 		; right draw
-		MOV R0, #0x01 ; clear symbol
+		MOV R0, #0x03 ; clear symbol 	!!!!! DEBUG !!!!! for 2pixel lines
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_RIGHT:
 			MOV A, R3
@@ -318,6 +338,19 @@ LCDDRAW:
 	
 	
 	RET
+
+
+
+
+
+;#################################################
+;##############    DATA   ########################
+;#################################################
+
+	DB 0x40
+
+	;ORG 0x7F0 ; last bytes
+	;DB 0x50, 0x88, 0x99
 
 
 END
