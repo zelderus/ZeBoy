@@ -92,12 +92,16 @@ DOTEST:
 	MOV A, @R1		; read data
 	RET
 
+	
+;;;
+;;;
+;;;
 TESTLOOP:
-	MOV A, #0x50
-	ACALL DELAYMS
+	MOV A, #10
+	ACALL DELAYNS
 	MOV P1, #0x00
-	MOV A, #0x50
-	ACALL DELAYMS
+	MOV A, #10
+	ACALL DELAYNS
 	MOV P1, #0xFF
 	LJMP TESTLOOP
 	RET
@@ -144,13 +148,11 @@ MAINLOOP:
 ; Helpers
 ;
 ; =====================
+; миллисекунда (10-3)
 DELAYMS:	; A = times
-	;PUSH ACC
-	;ACALL LIGHTBLUEON ;
-	;POP ACC
 	MOV R7, A
 	LMX:
-		MOV R6, #230
+		MOV R6, #146 ;#230
 		LX:
 			NOP
 			NOP
@@ -160,12 +162,19 @@ DELAYMS:	; A = times
 			NOP
 			DJNZ R6, LX
 		DJNZ R7, LMX
-	ACALL LIGHTBLUEOFF ;
 	RET
+; микросекунда (10-6)
 DELAYNS:	; A = times
-	;PUSH ACC
-	;ACALL LIGHTBLUEON ;
-	;POP ACC
+	MOV R7, A
+	LMX3:
+		MOV R6, #1 ;#230
+		LX3:
+			;NOP
+			DJNZ R6, LX3
+		DJNZ R7, LMX3
+	RET
+; наносекунда (10-9)
+DELAYUS:	; A = times
 	MOV R7, A
 	LMX2:
 		MOV R6, #2 ;#230
@@ -175,21 +184,8 @@ DELAYNS:	; A = times
 			NOP
 			DJNZ R6, LX2
 		DJNZ R7, LMX2
-	ACALL LIGHTBLUEOFF ;
 	RET
-DELAYUS:	; A = times
-	;PUSH ACC
-	;ACALL LIGHTBLUEON ;
-	;POP ACC
-	MOV R7, A
-	LMX3:
-		MOV R6, #0x01 ;#230
-		LX3:
-			NOP
-			DJNZ R6, LX3
-		DJNZ R7, LMX3
-	ACALL LIGHTBLUEOFF ;
-	RET
+
 	
 LIGHTBLUEON:
 	SETB PPBLED
