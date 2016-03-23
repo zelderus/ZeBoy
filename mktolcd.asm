@@ -171,7 +171,7 @@ INITIALIZE: ;set up control registers & ports
 ; =====================
 MAIN:
 	CLR PPLED
-	CLR PPLED
+	CLR PPBLED
 	;ACALL SEG7LOOP ;DOTEST
 	ACALL INITIALIZE
 	ACALL LCDINIT
@@ -194,7 +194,7 @@ MAINLOOP:
 ; Helpers
 ;
 ; =====================
-; миллисекунда (10-3)
+; секунда
 DELAYS:	; A = times
 	MOV R7, A
 	LMXZ:
