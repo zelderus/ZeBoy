@@ -1,4 +1,5 @@
 
+
 ; ######################################################
 ;
 ;	Программа под MK AT89C2051 
@@ -35,7 +36,8 @@
 	LCD_CS	EQU P3.3
 	LCD_RES	EQU P3.4
 
-
+	PPLED	EQU P3.7
+	PPBLED	EQU P3.5
 ;;;;;;;;;;;;;;;;;;;;;
 ;; PROG help
 ;;
@@ -89,6 +91,16 @@ DOTEST:
 	INC R1
 	MOV A, @R1		; read data
 	RET
+
+TESTLOOP:
+	MOV A, #0x50
+	ACALL DELAYMS
+	MOV P1, #0x00
+	MOV A, #0x50
+	ACALL DELAYMS
+	MOV P1, #0xFF
+	LJMP TESTLOOP
+	RET
 	
 	
 	
@@ -108,7 +120,9 @@ INITIALIZE: ;set up control registers & ports
 ;
 ; =====================
 MAIN:
-	ACALL DOTEST
+	CLR PPLED
+	CLR PPLED
+	;ACALL TESTLOOP ;DOTEST
 	ACALL INITIALIZE
 	ACALL LCDINIT
 	ACALL LCDCLEAR
@@ -116,11 +130,12 @@ MAIN:
 	
 	
 MAINLOOP:
-	ACALL LCDDRAW ; Draw once
+	;ACALL LCDDRAW ; Draw once
+	DONO:
+		MOV R5, #10	; cycle
+		;ACALL LCDDRAW - Do nothing
 	
-	MOV R5, #10	; cycle
-	;ACALL LCDDRAW - Do nothing
-	DJNZ R5, MAINLOOP
+		DJNZ R5, DONO
 	RET
 	
 	
@@ -130,6 +145,9 @@ MAINLOOP:
 ;
 ; =====================
 DELAYMS:	; A = times
+	;PUSH ACC
+	;ACALL LIGHTBLUEON ;
+	;POP ACC
 	MOV R7, A
 	LMX:
 		MOV R6, #230
@@ -142,18 +160,82 @@ DELAYMS:	; A = times
 			NOP
 			DJNZ R6, LX
 		DJNZ R7, LMX
+	ACALL LIGHTBLUEOFF ;
 	RET
 DELAYNS:	; A = times
-	; TODO
-	ACALL DELAYMS
+	;PUSH ACC
+	;ACALL LIGHTBLUEON ;
+	;POP ACC
+	MOV R7, A
+	LMX2:
+		MOV R6, #2 ;#230
+		LX2:
+			NOP
+			NOP
+			NOP
+			DJNZ R6, LX2
+		DJNZ R7, LMX2
+	ACALL LIGHTBLUEOFF ;
 	RET
 DELAYUS:	; A = times
-	; TODO
-	ACALL DELAYMS
+	;PUSH ACC
+	;ACALL LIGHTBLUEON ;
+	;POP ACC
+	MOV R7, A
+	LMX3:
+		MOV R6, #0x01 ;#230
+		LX3:
+			NOP
+			DJNZ R6, LX3
+		DJNZ R7, LMX3
+	ACALL LIGHTBLUEOFF ;
+	RET
+	
+LIGHTBLUEON:
+	SETB PPBLED
+	MOV R7, #0x50
+	LMX9:
+		MOV R6, #230
+		LX9:
+			NOP
+			NOP
+			NOP
+			NOP
+			NOP
+			NOP
+			DJNZ R6, LX9
+		DJNZ R7, LMX9
+	CLR PPBLED
+	RET
+LIGHTBLUEOFF:
+	CLR PPBLED
+	RET
+	
+LIGHTGREEN:
+	SETB PPLED
+	MOV A, #0xFF
+	MOV R7, A
+	LMX22:
+		MOV R6, #230
+		LX22:
+			NOP
+			NOP
+			NOP
+			NOP
+			NOP
+			NOP
+			DJNZ R6, LX22
+		DJNZ R7, LMX22
+	CLR PPLED
 	RET
 	
 	
-	
+STEPEND:
+	MOV P1, #0x00
+	MOV P3, #0x00
+	; GREEN
+	ACALL LIGHTGREEN
+	RET
 	
 ; =====================
 ;
@@ -206,6 +288,9 @@ LCDINIT:
 	MOV R0, #0xAF
 	ACALL LCDWRITE_CODE_L
 	ACALL LCDWRITE_CODE_R
+	
+	; STEP END
+	ACALL STEPEND
 	RET
 
 
@@ -305,6 +390,8 @@ LCDCLEAR:
 			DJNZ R3, LCDCLEAR_PAGE_RIGHT
 		
 		DJNZ R4, LCDCLEAR_PAGE
+	; STEP END
+	ACALL STEPEND
 	RET
 	
 ; ----------------------	
@@ -354,3 +441,4 @@ LCDDRAW:
 
 
 END
+
