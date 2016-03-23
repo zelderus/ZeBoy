@@ -17,7 +17,7 @@
 
 #
 #	Example:
-#				import zep_at89c2051 as mk			# импорт драйвера программатора
+#				import pr8051 as mk					# импорт драйвера программатора
 #				def initAndWrite():
 #					mk.mkInit()  					# инициализация
 #					mk.mkWrite("mktolcd.bin")		# запись
