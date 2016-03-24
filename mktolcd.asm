@@ -121,7 +121,7 @@ MAIN:
 	
 MAINLOOP:
 	ACALL LCDCLEAR
-	;ACALL LCDDRAW ; Draw once
+	ACALL LCDDRAW ; Draw once
 	DONO:
 		MOV R5, #10	; cycle
 		;ACALL LCDDRAW - Do nothing
@@ -348,7 +348,7 @@ LCDCLEAR:
 		LCDCLEAR_PAGE_LEFT:
 			;MOV A, R3
 			; DRAW 0x00
-			MOV R0, #0x55
+			;MOV R0, #0x00
 			ACALL LCDWRITE_DATA_L
 			DJNZ R3, LCDCLEAR_PAGE_LEFT
 		;; RIGHT
@@ -356,16 +356,15 @@ LCDCLEAR:
 		ORL A, #0xB8
 		MOV R0, A
 		ACALL LCDWRITE_CODE_R
-		MOV R0, #0x13 ;#0x00
+		MOV R0, #0x13 ;#0x00  !!! WTF !!!
 		ACALL LCDWRITE_CODE_R
 		; right draw
 		MOV R0, #0x00 ; clear symbol
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_RIGHT:
 			;MOV A, R3
-			;ADD A, #61
 			; DRAW 0x00
-			MOV R0, #0xAA
+			;MOV R0, #0x00
 			ACALL LCDWRITE_DATA_R
 			DJNZ R3, LCDCLEAR_PAGE_RIGHT
 		
