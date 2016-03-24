@@ -28,13 +28,14 @@
 			<div class="articlebody">
 				<p>Схема:</p>
 				<p><a href="../Content/Images/pr8051_1_s1.jpg" target="_blank"><img class="img_sheme" src="../Content/Images/pr8051_1_s1.jpg"/></a></p>
-				<p>К программатору подключается также <span class="span_device">A512.1</span>, для смены напряжения 5V,12V при прошивки МК.</p>
+				<p>К программатору подключается также <span class="span_device">A512.1</span>, для смены напряжения <span class="span_volt">5V,12V</span> во время прошивки МК.</p>
 			</div>
 			
 			<h2>A512.1 - Управление питанием с 5V на 12V (подключается к PR8051.1)</h2>
 			<div class="articlebody">
 				<p>Схема:</p>
-				<p><a href="../Content/Images/a512_1_s1.jpg" target="_blank"><img class="img_sheme" src="../Content/Images/a512_1_s1.jpg"/></a></p>
+				<p><a href="../Content/Images/a512_1_1.png" target="_blank"><img class="img_sheme" src="../Content/Images/a512_1_1.png"/></a></p>
+				<p>При подачи <span class="span_data">H</span>(лог. 1) на <span class="span_pin">С</span>, на выходе (контакт <span class="span_pin">RST</span>) будет <span class="span_volt">5V</span>, иначе <span class="span_volt">12V</span>.</p>
 			</div>
 			
 			
@@ -80,7 +81,7 @@
 				<p>Пример программы на Python3:</p>
 				<div class="code_simple">
 					<textarea class="txt_code" style="height:400px;">
-		import zep_at89c2051 as mk
+		import pr8051 as mk
 		
 		# инициализация
 		mk.mkInit()  				

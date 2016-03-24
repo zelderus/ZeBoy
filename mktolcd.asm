@@ -94,65 +94,6 @@ DOTEST:
 
 	
 	
-
-;;;
-;;; 7-Segment LED test
-;;;
-DD_0 EQU 0b00111111
-DD_1 EQU 0b00000110
-DD_2 EQU 0b01011011
-DD_3 EQU 0b01001111
-DD_4 EQU 0b01100110
-DD_5 EQU 0b01101101
-DD_6 EQU 0b01111101
-DD_7 EQU 0b00000111
-DD_8 EQU 0b01111111
-DD_9 EQU 0b01100111
-SEG7LOOP:
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_0
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_1
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_2
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_3
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_4
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_5
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_6
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_7
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_8
-	
-	MOV A, #1
-	ACALL DELAYS
-	MOV P1, #DD_9
-		
-	LJMP SEG7LOOP
-	RET
-	
-	
 	
 
 ;; INIT
@@ -175,12 +116,12 @@ MAIN:
 	;ACALL SEG7LOOP ;DOTEST
 	ACALL INITIALIZE
 	ACALL LCDINIT
-	ACALL LCDCLEAR
+	;ACALL LCDCLEAR
 	ACALL MAINLOOP
 	
 	
 MAINLOOP:
-	;ACALL LCDDRAW ; Draw once
+	ACALL LCDDRAW ; Draw once
 	DONO:
 		MOV R5, #10	; cycle
 		;ACALL LCDDRAW - Do nothing
@@ -255,51 +196,25 @@ DELAYUS:	; A = times
 		DJNZ R7, LMX2
 	RET
 
-	
-LIGHTBLUEON:
-	SETB PPBLED
-	MOV R7, #0x50
-	LMX9:
-		MOV R6, #230
-		LX9:
-			NOP
-			NOP
-			NOP
-			NOP
-			NOP
-			NOP
-			DJNZ R6, LX9
-		DJNZ R7, LMX9
-	CLR PPBLED
-	RET
-LIGHTBLUEOFF:
-	CLR PPBLED
-	RET
-	
-LIGHTGREEN:
-	SETB PPLED
-	MOV A, #0xFF
-	MOV R7, A
-	LMX22:
-		MOV R6, #230
-		LX22:
-			NOP
-			NOP
-			NOP
-			NOP
-			NOP
-			NOP
-			DJNZ R6, LX22
-		DJNZ R7, LMX22
-	CLR PPLED
-	RET
-	
-	
 STEPEND:
 	MOV P1, #0x00
-	MOV P3, #0x00
-	; GREEN
-	ACALL LIGHTGREEN
+	RET
+	
+SETBANK0:
+	CLR PSW.3
+	CLR PSW.4
+	RET
+SETBANK1:
+	SETB PSW.3
+	CLR PSW.4
+	RET
+SETBANK2:
+	CLR PSW.3
+	SETB PSW.4
+	RET
+SETBANK3:
+	SETB PSW.3
+	SETB PSW.4
 	RET
 	
 ; =====================
@@ -312,8 +227,10 @@ STEPEND:
 ; Инициализация дисплея
 ; ----------------------
 LCDINIT:
-	MOV A, #20
-	ACALL DELAYMS
+	; pre wait
+	;MOV A, #20
+	;ACALL DELAYMS
+	
 	;s_mtE(1)
 	;s_mtRES(0)
 	MOV P3, #0x01 ;#0b00000001 ;(E=1, RW=0, A0=0, CS=0, RES=0)
@@ -362,16 +279,18 @@ LCDINIT:
 ; ----------------------	
 ; Подача кода/команды в дисплей
 ; ----------------------
-LCDWRITE:  ; R0(A) = data byte, R1 = cmd
-	;s_writeByte(b, cd, lr)
-	
-	;s_mtRW(0) ;CLR P3.1
-	;s_mtA0(cd)
-	;s_mtCS(lr)
+LCDWRITE:  ; R0 = data byte, R1 = cmd
 	; set E,RW,A0,CS
+	; without fix RES
 	MOV P3, R1
+	
+	; with fix RES (если неуверены, что во внешке оставили RES=1)
+	;MOV A, R1
+	;ORL A, #0x10	; RES forever 1
+	;MOV P3, A; R1 - fixed R1
+		
 	;s_mtData(b)
-	MOV P1, R0; A
+	MOV P1, R0
 	;s_delayNs(40.0)	#>40
 	MOV A, #40
 	ACALL DELAYNS
@@ -383,27 +302,23 @@ LCDWRITE:  ; R0(A) = data byte, R1 = cmd
 	;s_mtE(1)
 	SETB LCD_E
 	;s_delayNs(200.0 - 40.0 - 160.0) #2000.0 - 40.0 - 160.0
-	MOV A, #10
-	ACALL DELAYNS
+	;MOV A, #10
+	;ACALL DELAYNS
 	RET
 LCDWRITE_CODE_L:	; R0 = data byte
-	MOV R1, #0x09 ;#0b00001001 ;(E=1, RW=0, A0=0, CS=1)
-	;MOV A, R0
+	MOV R1, #0x19 ;#0b00011001 ;(E=1, RW=0, A0=0, CS=1, RES=1)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_CODE_R:	; R0 = data byte
-	MOV R1, #0x01 ;#0b00000001 ;(E=1, RW=0, A0=0, CS=0)
-	;MOV A, R0
+	MOV R1, #0x11 ;#0b00010001 ;(E=1, RW=0, A0=0, CS=0, RES=1)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_L:	; R0 = data byte
-	MOV R1, #0x0D ;#0b00001101 ;(E=1, RW=0, A0=1, CS=1)
-	;MOV A, R0
+	MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, A0=1, CS=1, RES=1)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_R:	; R0 = data byte
-	MOV R1, #0x05 ;#0b00000101 ;(E=1, RW=0, A0=1, CS=0)
-	;MOV A, R0
+	MOV R1, #0x15 ;#0b00010101 ;(E=1, RW=0, A0=1, CS=0, RES=1)
 	ACALL LCDWRITE
 	RET
 	
@@ -428,7 +343,7 @@ LCDCLEAR:
 		MOV R0, #0x13
 		ACALL LCDWRITE_CODE_L
 		; left draw
-		MOV R0, #0x03 ; clear symbol 	!!!!! DEBUG !!!!! for 2pixel lines
+		MOV R0, #0x00 ; clear symbol
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_LEFT:
 			MOV A, R3
@@ -444,7 +359,7 @@ LCDCLEAR:
 		MOV R0, #0x00
 		ACALL LCDWRITE_CODE_R
 		; right draw
-		MOV R0, #0x03 ; clear symbol 	!!!!! DEBUG !!!!! for 2pixel lines
+		MOV R0, #0x00 ; clear symbol
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_RIGHT:
 			MOV A, R3
@@ -468,26 +383,33 @@ LCDDRAW:
 	
 	
 	; JUST BEE !!!!!!!!!!!!!!1
-	MOV R2, #0
+	MOV R2, #0	; page 0
 	;; LEFT
 	MOV A, R2
-	ORL A, #0xB8
+	ORL A, #0xB8	
 	MOV R0, A
 	ACALL LCDWRITE_CODE_L
-	MOV R0, #0x13
+	MOV R0, #0x13	; addr
 	ACALL LCDWRITE_CODE_L
-	MOV R0, #0x99 ; symbol
-	MOV R3, #61	; row cycle
-	TMP_DRAW:
-		MOV A, R3
-		; DRAW 0x00
-		;MOV R0, #0x00
-		ACALL LCDWRITE_DATA_L
-		DJNZ R3, TMP_DRAW
+	; draw
+	
 
-	
-	
-	
+	; first addr
+	MOV DPTR, #0x700	
+	MOV R3, #4	; num words
+	DDRF:
+		MOV R2, #8 ; cols of 8 bytes (symbol) 
+		DRS:
+			; draw byte
+			MOV A, #0
+			MOVC A, @A+DPTR
+			MOV R0, A
+			ACALL LCDWRITE_DATA_L
+			; next addr
+			INC DPTR
+			DJNZ R2, DRS
+		DJNZ R3, DDRF
+
 	
 	RET
 
@@ -499,10 +421,15 @@ LCDDRAW:
 ;##############    DATA   ########################
 ;#################################################
 
+ORG 0x700
+	DB 0x00, 0xff, 0xff, 0x03, 0x03, 0xff, 0xff, 0x00
+	DB 0x00, 0xff, 0xff, 0x70, 0x0E, 0xff, 0xff, 0x00
+	DB 0x00, 0xff, 0xff, 0xC3, 0xC3, 0xe7, 0xe7, 0x00
+	DB 0x00, 0xcf, 0xef, 0x1d, 0x1d, 0xff, 0xff, 0x00
+
+DATABR:
 	DB 0x40
 
-	;ORG 0x7F0 ; last bytes
-	;DB 0x50, 0x88, 0x99
 
 
 END

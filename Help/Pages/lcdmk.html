@@ -29,7 +29,9 @@
 			
 			<h2>Подключение МК к LCD</h2>
 			<div class="articlebody">
-				TODO:
+				<p>Схема:</p>
+				<p><a href="../Content/Images/mklcd_1.png" target="_blank"><img class="img_sheme" src="../Content/Images/mklcd_1.png"/></a></p>
+				<p>На схеме указан дисплей <span class="span_device">AGM1232G</span>. Используемый в проекте дисплей <span class="span_device">MT-12232A</span> является аналогом этого.</p>
 			</div>
 			
 			<h2>Программа на ASM</h2>
@@ -42,7 +44,7 @@
 					<div>Пример программы на Python3 для прошивки:</div>
 					<div class="code_simple">
 						<textarea class="txt_code" style="height:100px;">
-		import zep_at89c2051 as mk
+		import pr8051 as mk
 		
 		mk.mkInit()  					# инициализация
 		mk.mkWrite("mktolcd.bin")		# запись
