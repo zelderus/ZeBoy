@@ -346,9 +346,9 @@ LCDCLEAR:
 		MOV R0, #0x00 ; clear symbol
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_LEFT:
-			MOV A, R3
+			;MOV A, R3
 			; DRAW 0x00
-			;MOV R0, #0x00
+			MOV R0, #0x00
 			ACALL LCDWRITE_DATA_L
 			DJNZ R3, LCDCLEAR_PAGE_LEFT
 		;; RIGHT
@@ -362,10 +362,10 @@ LCDCLEAR:
 		MOV R0, #0x00 ; clear symbol
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_RIGHT:
-			MOV A, R3
+			;MOV A, R3
 			;ADD A, #61
 			; DRAW 0x00
-			;MOV R0, #0x00
+			MOV R0, #0x00
 			ACALL LCDWRITE_DATA_R
 			DJNZ R3, LCDCLEAR_PAGE_RIGHT
 		
