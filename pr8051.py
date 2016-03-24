@@ -276,7 +276,7 @@ def _writePulse():
 
 def _witeReady():
 	wb = 0
-	print("waiting..")
+	print(".", end="", flush=True)
 	while(wb==0):
 		wb = _getPin31()
 
@@ -331,6 +331,7 @@ def _writeToMk(firstByte, bts):
 		_witeReady()
 		# next addr
 		_nextAddr()
+	print(" ok")
 	# power low
 	print("power lowing..")
 	time.sleep(1.0)
@@ -393,7 +394,8 @@ def _loadData(fname):
 	# read from file
 	blocksize = 2048
 	with open(fname, "rb") as f:
-		block = f.read(blocksize)
+		#block = f.read(blocksize)
+		block = f.read()
 		#strp = ""
 		#for ch in block:
 		#	strp += hex(ch)+" "
