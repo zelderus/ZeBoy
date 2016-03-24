@@ -363,7 +363,7 @@ LCDCLEAR:
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_RIGHT:
 			MOV A, R3
-			ADD A, #61
+			;ADD A, #61
 			; DRAW 0x00
 			;MOV R0, #0x00
 			ACALL LCDWRITE_DATA_R
