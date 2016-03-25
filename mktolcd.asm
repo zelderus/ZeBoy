@@ -327,6 +327,10 @@ LCDWRITE_DATA_R:	; R0 = data byte
 ; Очистка дисплея
 ; ----------------------
 LCDCLEAR:
+	; reset addr
+	MOV R0, #0xE2
+	ACALL LCDWRITE_CODE_L
+	
 	MOV R4, #4	; page cycle
 	LCDCLEAR_PAGE:
 		; 4 to 0
@@ -377,9 +381,10 @@ LCDCLEAR:
 ; Рисуем в дисплей
 ; ----------------------
 LCDDRAW:
-	;ACALL LCDCLEAR
-	; TODO
-	
+
+	; reset addr
+	MOV R0, #0xE2
+	ACALL LCDWRITE_CODE_L
 	
 	; JUST BEE !!!!!!!!!!!!!!1
 	MOV R2, #0	; page 0
