@@ -330,6 +330,7 @@ LCDCLEAR:
 	; reset addr
 	MOV R0, #0xE2
 	ACALL LCDWRITE_CODE_L
+	ACALL LCDWRITE_CODE_R
 	
 	MOV R4, #4	; page cycle
 	LCDCLEAR_PAGE:
@@ -385,6 +386,7 @@ LCDDRAW:
 	; reset addr
 	MOV R0, #0xE2
 	ACALL LCDWRITE_CODE_L
+	ACALL LCDWRITE_CODE_R
 	
 	; JUST BEE !!!!!!!!!!!!!!1
 	MOV R2, #0	; page 0
@@ -400,24 +402,42 @@ LCDDRAW:
 
 	; first addr
 	MOV DPTR, #0x700	
-	MOV R3, #4	; num words
+	MOV R3, #3	; num words
 	DDRF:
-		MOV R2, #8 ; cols of 8 bytes (symbol) 
-		DRS:
-			; draw byte
-			MOV A, #0
-			MOVC A, @A+DPTR
-			MOV R0, A
-			ACALL LCDWRITE_DATA_L
-			; next addr
-			INC DPTR
-			DJNZ R2, DRS
+		ACALL DRSYMBL
 		DJNZ R3, DDRF
 
 	
 	RET
 
 
+;#################################################
+;#############    Draw helper   ##################
+;#################################################
+
+; вывод Символа (8x8 bit) в текущую позицию дисплея
+DRSYMBL: ; DPTR = addr of symb
+	;MOV DPTR, #0x600	
+	MOV R2, #8 ; cols of 8 bytes (symbol) 
+	_DRSS:
+		MOV A, #0
+		MOVC A, @A+DPTR
+		MOV R0, A
+		ACALL LCDWRITE_DATA_L
+		INC DPTR
+		DJNZ R2, _DRSS
+	RET
+DRSYMBR: ; DPTR = addr of symb
+	;MOV DPTR, #0x600	
+	MOV R2, #8 ; cols of 8 bytes (symbol) 
+	_DRSS2:
+		MOV A, #0
+		MOVC A, @A+DPTR
+		MOV R0, A
+		ACALL LCDWRITE_DATA_R
+		INC DPTR
+		DJNZ R2, _DRSS2
+	RET
 
 
 

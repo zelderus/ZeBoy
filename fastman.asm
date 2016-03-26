@@ -446,6 +446,7 @@ LCDDRAW:
 	; reset addr
 	MOV R0, #0xE2
 	ACALL LCDWRITE_CODE_L
+	ACALL LCDWRITE_CODE_R
 	
 	; JUST BEE !!!!!!!!!!!!!!1
 		
