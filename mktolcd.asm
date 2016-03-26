@@ -348,7 +348,7 @@ LCDCLEAR:
 		MOV R0, #0x13
 		ACALL LCDWRITE_CODE_L
 		; left draw
-		MOV R0, #0x55 ; clear symbol
+		MOV R0, #0x00 ; clear symbol
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_LEFT:
 			;MOV A, R3
@@ -364,7 +364,7 @@ LCDCLEAR:
 		MOV R0, #0x13 ;#0x00  ;!!! WTF !!!
 		ACALL LCDWRITE_CODE_R
 		; right draw
-		MOV R0, #0xAA ; clear symbol
+		MOV R0, #0x00 ; clear symbol
 		MOV R3, #61	; row cycle
 		LCDCLEAR_PAGE_RIGHT:
 			;MOV A, R3
