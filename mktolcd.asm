@@ -328,9 +328,9 @@ LCDWRITE_DATA_R:	; R0 = data byte
 ; ----------------------
 LCDCLEAR:
 	; reset addr
-	MOV R0, #0xE2
-	ACALL LCDWRITE_CODE_L
-	ACALL LCDWRITE_CODE_R
+	;MOV R0, #0xE2
+	;ACALL LCDWRITE_CODE_L
+	;ACALL LCDWRITE_CODE_R
 	
 	MOV R4, #4	; page cycle
 	LCDCLEAR_PAGE:
@@ -361,7 +361,7 @@ LCDCLEAR:
 		ORL A, #0xB8
 		MOV R0, A
 		ACALL LCDWRITE_CODE_R
-		MOV R0, 0x00  ;!!! WTF !!!
+		MOV R0, #0x13 ;#0x00  ;!!! WTF !!!
 		ACALL LCDWRITE_CODE_R
 		; right draw
 		MOV R0, #0xAA ; clear symbol
@@ -384,9 +384,9 @@ LCDCLEAR:
 LCDDRAW:
 
 	; reset addr
-	MOV R0, #0xE2
-	ACALL LCDWRITE_CODE_L
-	ACALL LCDWRITE_CODE_R
+	;MOV R0, #0xE2
+	;ACALL LCDWRITE_CODE_L
+	;ACALL LCDWRITE_CODE_R
 	
 	; JUST BEE !!!!!!!!!!!!!!1
 	MOV R2, #0	; page 0
