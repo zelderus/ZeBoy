@@ -534,11 +534,11 @@ DRAW_TABLE:
 	MOV DPTR, #DDD_DATA_TBLB
 	MOV R2, #61
 	MOV R3, #0
-	_ddro_tbl_stat_1:
+	_ddro_tbl_stat_2:
 		; reset cycle
-		CJNE R3, #7, _ddro_tbl_stat_offs_1
+		CJNE R3, #7, _ddro_tbl_stat_offs_2
 		MOV R3, #0
-		_ddro_tbl_stat_offs_1:
+		_ddro_tbl_stat_offs_2:
 		; addr
 		MOV A, R3
 		MOVC A, @A+DPTR
@@ -547,7 +547,7 @@ DRAW_TABLE:
 		ACALL LCDWRITE_DATA_R
 		; next addr
 		INC R3
-		DJNZ R2, _ddro_tbl_stat_1
+		DJNZ R2, _ddro_tbl_stat_2
 		
 	RET
 	
