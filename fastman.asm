@@ -54,6 +54,7 @@
 	
 ; ++++++++++++++++++++++++++++++++++++++++++++++++++++
 ; constants
+	FIRSTADDRIGHT	EQU	0x13	;0x00 0x13 !!! WTF !!!
 	GAME_FLAG_ADDR	EQU 0x40
 
 
@@ -430,7 +431,7 @@ LCDCLEAR:
 		ORL A, #0xB8
 		MOV R0, A
 		ACALL LCDWRITE_CODE_R
-		MOV R0, #0x00 ;#0x00 #0x13  !!! WTF !!!
+		MOV R0, #FIRSTADDRIGHT ;#0x00 #0x13  !!! WTF !!!
 		ACALL LCDWRITE_CODE_R
 		; right draw
 		MOV R0, #0x00 ; clear symbol
@@ -465,7 +466,7 @@ LCDDRAW:
 	
 	; air
 	;ACALL DRAW_AIR 
-	MOV DPTR, #0x620
+	MOV DPTR, #DDD_DATA_AIR
 	MOV R3, #0xBB
 	MOV R4, #0x40
 	ACALL DRAW_RODR_L
@@ -473,7 +474,7 @@ LCDDRAW:
 	
 	; ground
 	;ACALL DRAW_GROUND
-	MOV DPTR, #0x600
+	MOV DPTR, #DDD_DATA_GROUND ;#0x600
 	MOV R3, #0xB8
 	MOV R4, #0x41
 	ACALL DRAW_RODR_L
@@ -498,8 +499,34 @@ LCDDRAW:
 ; рисуем правую часть экрана, статика (рамка)
 ;
 DRAW_TABLE:
+	MOV R0, #0xE2		; reset addr
+	ACALL LCDWRITE_CODE_R
+	MOV R0, #0xB8		; page
+	ACALL LCDWRITE_CODE_R
+	MOV R0, #FIRSTADDRIGHT		; addr
+	ACALL LCDWRITE_CODE_R
 	; TODO
 
+	; top
+	MOV DPTR, #DDD_DATA_TBLB
+	MOV R2, #61
+	MOV R3, #0
+	_ddro_tbl_stat_1:
+		; reset cycle
+		CJNE R3, #7, _ddro_tbl_stat_offs_1
+		MOV R3, #0
+		_ddro_tbl_stat_offs_1:
+		; addr
+		MOV A, R3
+		MOVC A, @A+DPTR
+		; draw
+		MOV R0, A
+		ACALL LCDWRITE_DATA_R
+		; next addr
+		INC R3
+		DJNZ R2, _ddro_tbl_stat_1
+		
+		
 	RET
 	
 ;
@@ -651,13 +678,20 @@ DRSYMBL: ; DPTR = addr of symb
 ;#################################################
 
 ;; air
+DDD_DATA_AIR	EQU 0x600
 ORG 0x600
+	DB 0xCF, 0x49, 0x79, 0x49, 0xCF, 0x49, 0x79, 0x49
+	DB 0xCF, 0x49, 0x79, 0x49, 0xCF, 0x49, 0x79, 0x49
+;; ground
+DDD_DATA_GROUND	EQU 0x610
+ORG 0x610
 	DB 0x08, 0x1C, 0x36, 0x22, 0x20, 0x20, 0x38, 0x0C
 	DB 0x04, 0x0E, 0x1A, 0x12, 0x10, 0x18, 0x08, 0x08
-;; ground
+;; table border
+DDD_DATA_TBLB	EQU 0x620
 ORG 0x620
-	DB 0xCF, 0x49, 0x79, 0x49, 0xCF, 0x49, 0x79, 0x49
-	DB 0xCF, 0x49, 0x79, 0x49, 0xCF, 0x49, 0x79, 0x49
+	DB 0xFF, 0xE7, 0xC3, 0x81, 0x81, 0xC3, 0xE7, 0xFF
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	
 	
 	
