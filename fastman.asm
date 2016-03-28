@@ -504,8 +504,6 @@ DRAW_TABLE:
 	ACALL LCDWRITE_CODE_R
 	MOV R0, #FIRSTADDRIGHT		; addr
 	ACALL LCDWRITE_CODE_R
-	; TODO
-
 	; top
 	MOV DPTR, #DDD_DATA_TBLB
 	MOV R2, #61
@@ -525,6 +523,31 @@ DRAW_TABLE:
 		INC R3
 		DJNZ R2, _ddro_tbl_stat_1
 		
+	; bottom
+	MOV R0, #0xE2		; reset addr
+	ACALL LCDWRITE_CODE_R
+	MOV R0, #0xBB		; page
+	ACALL LCDWRITE_CODE_R
+	MOV R0, #0x00		; addr
+	ACALL LCDWRITE_CODE_R
+	; top
+	MOV DPTR, #DDD_DATA_TBLB
+	MOV R2, #61
+	MOV R3, #0
+	_ddro_tbl_stat_1:
+		; reset cycle
+		CJNE R3, #7, _ddro_tbl_stat_offs_1
+		MOV R3, #0
+		_ddro_tbl_stat_offs_1:
+		; addr
+		MOV A, R3
+		MOVC A, @A+DPTR
+		; draw
+		MOV R0, A
+		ACALL LCDWRITE_DATA_R
+		; next addr
+		INC R3
+		DJNZ R2, _ddro_tbl_stat_1
 		
 	RET
 	
