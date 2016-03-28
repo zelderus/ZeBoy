@@ -143,6 +143,12 @@ MAIN:
 	MOV @R1, #0x00		; write data (GAME FLAG)
 	MOV R1, #0x41		; set address
 	MOV @R1, #0x00		; write data
+	MOV R1, #0x42		; set address
+	MOV @R1, #0x00		; write data
+	MOV R1, #0x43		; set address
+	MOV @R1, #0x00		; write data
+	MOV R1, #0x44		; set address
+	MOV @R1, #0x00		; write data
 	
 	ACALL INITBUTTONINT
 	ACALL MAINLOOP
@@ -150,7 +156,7 @@ MAIN:
 	
 MAINLOOP:
 	ACALL LCDCLEAR
-	;ACALL LCDDRAW ; Draw once
+	ACALL DRAW_TABLE
 
 	DONO:
 		MOV R5, #10	; cycle
@@ -204,9 +210,9 @@ DELAYS:	; A = times
 		MOV R6, #4 ;#230
 		LXZ:
 		
-			MOV R2, #250
+			MOV R5, #250
 			LMXD:
-				MOV R3, #146 ;#230
+				MOV R4, #146 ;#230
 				LXD:
 					NOP
 					NOP
@@ -214,8 +220,8 @@ DELAYS:	; A = times
 					NOP
 					NOP
 					NOP
-					DJNZ R3, LXD
-				DJNZ R2, LMXD
+					DJNZ R4, LXD
+				DJNZ R5, LMXD
 				
 			DJNZ R6, LXZ
 		DJNZ R7, LMXZ
@@ -452,20 +458,33 @@ LCDDRAW:
 	;ACALL LCDWRITE_CODE_R
 	
 
+	; score
+	ACALL DRAW_UPDATE_TABLE
 	
 	
 	
 	; air
-	ACALL DRAW_AIR
+	;ACALL DRAW_AIR 
+	MOV DPTR, #0x620
+	MOV R3, #0xBB
+	MOV R4, #0x40
+	ACALL DRAW_RODR_L
+	
 	
 	; ground
-	ACALL DRAW_GROUND
-		
-		
+	;ACALL DRAW_GROUND
+	MOV DPTR, #0x600
+	MOV R3, #0xB8
+	MOV R4, #0x41
+	ACALL DRAW_RODR_L
+	
+	
+	
 	; next frame
 	;ACALL NEXT_OFFSET
 
-
+	;MOV A, #1
+	;ACALL DELAYS
 		
 	RET
 
@@ -473,11 +492,30 @@ LCDDRAW:
 ; ----------------------	
 ; ----------------------	
 ; ----------------------	
+
+
+;
+; рисуем правую часть экрана, статика (рамка)
+;
+DRAW_TABLE:
+	; TODO
+
+	RET
+	
+;
+; рисуем правую часть экрана, очки
+;
+DRAW_UPDATE_TABLE:
+	
+	; TODO
+
+	RET
+	
 	
 ; next offset
 NEXT_OFFSET:
 	; get air offset
-	MOV R1, #0x40		; set start address
+	MOV R1, #0x43		; set start address
 	MOV A, @R1			; read data
 	; write next offset
 	INC A
@@ -489,11 +527,61 @@ _dd_offset_1:
 	MOV @R1, A	; write data
 	RET
 
-;
-; рисуем небо
-;
-DRAW_AIR:
 	
+;
+; Отрисовка спрайтов
+; params:
+;	DPTR 	= start data addr (Sprites)
+;	R3 		= LCD page (0xB8 .. 0xBB)
+;	R4 		= addr of Offset (0x40) (адрес хранения смещения)
+DRAW_RODR_L:
+	MOV R0, #0xE2		; reset addr
+	ACALL LCDWRITE_CODE_L
+	MOV A, R3
+	MOV R0, A		; page
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0x13		; addr
+	ACALL LCDWRITE_CODE_L
+	; get frame offset
+	MOV A, R4
+	MOV R1, A		; set start address
+	MOV A, @R1			; read data
+	; offset
+	;MOV DPTR, #0x600 	; start addrs of Air
+	;MOV DPL, A			; set offset
+	; draw
+	MOV R2, #61
+	MOV R3, A	; R3 as offset
+	_ddro_ag:
+		; reset cycle
+		CJNE R3, #15, _ddro_ag_oofs
+		MOV R3, #0
+		_ddro_ag_oofs:
+		; addr
+		MOV A, R3
+		MOVC A, @A+DPTR
+		; draw
+		MOV R0, A
+		ACALL LCDWRITE_DATA_L
+		; next addr
+		INC R3
+		DJNZ R2, _ddro_ag
+	; write offset
+	MOV A, R4
+	MOV R1, A		; set start address
+	MOV A, R3
+	MOV @R1, A	; write data
+
+	RET
+	
+	
+	
+;
+; рисуем преграды
+;
+DRAW_OBST:
+	
+	; TODO !!!!!!!!!!!!!!!
 	;; LEFT
 	MOV R0, #0xE2		; reset addr
 	ACALL LCDWRITE_CODE_L
@@ -511,94 +599,30 @@ DRAW_AIR:
 	;MOV DPL, A			; set offset
 	
 	; draw
-	MOV R2, #62
-	PUSH ACC
-	_DRSSn_4:
-		;MOV A, #0
-		POP ACC
-		; reset cycle
-		CJNE A, #16, _dd44_offset_1
-		MOV A, #0
-		_dd44_offset_1:
-		
-		PUSH ACC
-		MOVC A, @A+DPTR
+	MOV R2, #61
+	MOV R3, A	; R3 as offset
 	
+	_DRSSn_4:
+		; reset cycle
+		CJNE R3, #15, _dd44_offset_1
+		MOV R3, #0
+		_dd44_offset_1:
+		; addr
+		MOV A, R3
+		MOVC A, @A+DPTR
 		; draw
 		MOV R0, A
 		ACALL LCDWRITE_DATA_L
-		
-		;INC DPTR
-		POP ACC
-		INC A
-		PUSH ACC
-		
+		; next addr
+		INC R3
 		DJNZ R2, _DRSSn_4
-	POP ACC
-	
-	
+		
 	; write offset
+	MOV A, R3
 	MOV R1, #0x40		; set start address
 	MOV @R1, A	; write data
 
 	RET
-
-;	
-; рисуем землю
-;
-DRAW_GROUND:
-	;; LEFT
-	MOV R0, #0xE2		; reset addr
-	ACALL LCDWRITE_CODE_L
-	MOV R0, #0xBB		; page 3
-	ACALL LCDWRITE_CODE_L
-	MOV R0, #0x13		; addr
-	ACALL LCDWRITE_CODE_L
-			
-	; get frame offset
-	MOV R1, #0x41		; set start address
-	MOV A, @R1			; read data
-		
-	; offset
-	MOV DPTR, #0x620 	; start addrs of Air
-	;MOV DPL, A			; set offset
-	
-	; draw
-	MOV R2, #62
-	PUSH ACC
-	_DRSSn_42:
-		;MOV A, #0
-		POP ACC
-		; reset cycle
-		CJNE A, #16, _dd44_offset_12
-		MOV A, #0
-		_dd44_offset_12:
-		
-		PUSH ACC
-		MOVC A, @A+DPTR
-	
-		; draw
-		MOV R0, A
-		ACALL LCDWRITE_DATA_L
-		
-		;INC DPTR
-		POP ACC
-		INC A
-		PUSH ACC
-		
-		DJNZ R2, _DRSSn_42
-	POP ACC
-	
-	; write offset
-	MOV R1, #0x41
-	MOV @R1, A
-	
-	
-	
-	
-	RET
-	
-	
 	
 	
 	
@@ -614,33 +638,13 @@ DRSYMBL: ; DPTR = addr of symb
 		MOV A, #0
 		MOVC A, @A+DPTR
 		MOV R0, A
-		ACALL LCDWRITE_DATA_L
+		ACALL LCDWRITE_DATA_L 	;! !!!! left
 		INC DPTR
 		DJNZ R2, _DRSS
 	RET
-DRSYMBR: ; DPTR = addr of symb
-	;MOV DPTR, #0x600	
-	MOV R2, #8 ; cols of 8 bytes (symbol) 
-	_DRSS2:
-		MOV A, #0
-		MOVC A, @A+DPTR
-		MOV R0, A
-		ACALL LCDWRITE_DATA_R
-		INC DPTR
-		DJNZ R2, _DRSS2
-	RET
 	
-DRSYMBNL: ; DPTR = addr of symb, A = count
-	;MOV DPTR, #0x600	
-	MOV R2, A ;#8 ; cols of 8 bytes (symbol) 
-	_DRSSn:
-		MOV A, #0
-		MOVC A, @A+DPTR
-		MOV R0, A
-		ACALL LCDWRITE_DATA_L
-		INC DPTR
-		DJNZ R2, _DRSSn
-	RET
+	
+
 
 ;#################################################
 ;##############    DATA   ########################
@@ -648,8 +652,8 @@ DRSYMBNL: ; DPTR = addr of symb, A = count
 
 ;; air
 ORG 0x600
-	DB 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08
-	DB 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10
+	DB 0x08, 0x1C, 0x36, 0x22, 0x20, 0x20, 0x38, 0x0C
+	DB 0x04, 0x0E, 0x1A, 0x12, 0x10, 0x18, 0x08, 0x08
 ;; ground
 ORG 0x620
 	DB 0xCF, 0x49, 0x79, 0x49, 0xCF, 0x49, 0x79, 0x49
