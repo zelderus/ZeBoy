@@ -85,6 +85,7 @@ ORG 25H ;locate beginning of rest of program
 
 ;#################################################
 ORG 0x30 ;0x0A
+
 ;; test
 DOTEST:
 	MOV B, #0x40	; get start addr
@@ -137,8 +138,12 @@ MAIN:
 	;ACALL SEG7LOOP ;DOTEST
 	ACALL DISINTS
 	ACALL LCDINIT
+	
 	MOV R1, #GAME_FLAG_ADDR		; set address
 	MOV @R1, #0x00		; write data (GAME FLAG)
+	MOV R1, #0x41		; set address
+	MOV @R1, #0x00		; write data
+	
 	ACALL INITBUTTONINT
 	ACALL MAINLOOP
 	
@@ -440,52 +445,161 @@ LCDCLEAR:
 ; Рисуем в дисплей
 ; ----------------------
 LCDDRAW:
-	;ACALL LCDCLEAR
-	; TODO
 	
 	; reset addr
-	MOV R0, #0xE2
-	ACALL LCDWRITE_CODE_L
-	ACALL LCDWRITE_CODE_R
+	;MOV R0, #0xE2
+	;ACALL LCDWRITE_CODE_L
+	;ACALL LCDWRITE_CODE_R
 	
-	; JUST BEE !!!!!!!!!!!!!!1
-		
-	; PAGE
-	MOV R2, #0	; page 0
-	;MOV R1, #GAME_FLAG_ADDR
-	;MOV A, @R1
-	;MOV R2, A
-	
-	;; LEFT
-	MOV A, R2
-	ORL A, #0xB8	
-	MOV R0, A
-	ACALL LCDWRITE_CODE_L
-	MOV R0, #0x13	; addr
-	ACALL LCDWRITE_CODE_L
-	
-	
-	; draw
-	MOV DPTR, #0x600	
-	ACALL DRSYMBL
-		
-	; for test
-	;MOV DPTR, #0x600	
-	;ACALL DRSYMBR
 
-			
-	; first addr
-	MOV DPTR, #0x700	
-	MOV R3, #3	; num words
-	DDRF:
-		ACALL DRSYMBL
-		DJNZ R3, DDRF
+	
+	
+	
+	; air
+	ACALL DRAW_AIR
+	
+	; ground
+	ACALL DRAW_GROUND
+		
+		
+	; next frame
+	;ACALL NEXT_OFFSET
 
 
 		
 	RET
 
 
+; ----------------------	
+; ----------------------	
+; ----------------------	
+	
+; next offset
+NEXT_OFFSET:
+	; get air offset
+	MOV R1, #0x40		; set start address
+	MOV A, @R1			; read data
+	; write next offset
+	INC A
+	; reset cycle
+	CJNE A, #62, _dd_offset_1
+	MOV A, #0
+_dd_offset_1:
+	;MOV R1, #0x40
+	MOV @R1, A	; write data
+	RET
+
+;
+; рисуем небо
+;
+DRAW_AIR:
+	
+	;; LEFT
+	MOV R0, #0xE2		; reset addr
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0xB8		; page 0
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0x13		; addr
+	ACALL LCDWRITE_CODE_L
+			
+	; get frame offset
+	MOV R1, #0x40		; set start address
+	MOV A, @R1			; read data
+		
+	; offset
+	MOV DPTR, #0x600 	; start addrs of Air
+	;MOV DPL, A			; set offset
+	
+	; draw
+	MOV R2, #62
+	PUSH ACC
+	_DRSSn_4:
+		;MOV A, #0
+		POP ACC
+		; reset cycle
+		CJNE A, #16, _dd44_offset_1
+		MOV A, #0
+		_dd44_offset_1:
+		
+		PUSH ACC
+		MOVC A, @A+DPTR
+	
+		; draw
+		MOV R0, A
+		ACALL LCDWRITE_DATA_L
+		
+		;INC DPTR
+		POP ACC
+		INC A
+		PUSH ACC
+		
+		DJNZ R2, _DRSSn_4
+	POP ACC
+	
+	
+	; write offset
+	MOV R1, #0x40		; set start address
+	MOV @R1, A	; write data
+
+	RET
+
+;	
+; рисуем землю
+;
+DRAW_GROUND:
+	;; LEFT
+	MOV R0, #0xE2		; reset addr
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0xBB		; page 3
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0x13		; addr
+	ACALL LCDWRITE_CODE_L
+			
+	; get frame offset
+	MOV R1, #0x41		; set start address
+	MOV A, @R1			; read data
+		
+	; offset
+	MOV DPTR, #0x620 	; start addrs of Air
+	;MOV DPL, A			; set offset
+	
+	; draw
+	MOV R2, #62
+	PUSH ACC
+	_DRSSn_42:
+		;MOV A, #0
+		POP ACC
+		; reset cycle
+		CJNE A, #16, _dd44_offset_12
+		MOV A, #0
+		_dd44_offset_12:
+		
+		PUSH ACC
+		MOVC A, @A+DPTR
+	
+		; draw
+		MOV R0, A
+		ACALL LCDWRITE_DATA_L
+		
+		;INC DPTR
+		POP ACC
+		INC A
+		PUSH ACC
+		
+		DJNZ R2, _DRSSn_42
+	POP ACC
+	
+	; write offset
+	MOV R1, #0x41
+	MOV @R1, A
+	
+	
+	
+	
+	RET
+	
+	
+	
 	
 	
 ;#################################################
@@ -515,14 +629,34 @@ DRSYMBR: ; DPTR = addr of symb
 		INC DPTR
 		DJNZ R2, _DRSS2
 	RET
+	
+DRSYMBNL: ; DPTR = addr of symb, A = count
+	;MOV DPTR, #0x600	
+	MOV R2, A ;#8 ; cols of 8 bytes (symbol) 
+	_DRSSn:
+		MOV A, #0
+		MOVC A, @A+DPTR
+		MOV R0, A
+		ACALL LCDWRITE_DATA_L
+		INC DPTR
+		DJNZ R2, _DRSSn
+	RET
 
 ;#################################################
 ;##############    DATA   ########################
 ;#################################################
 
+;; air
 ORG 0x600
-	DB 0xFF, 0xBF, 0xDB, 0xFF, 0xB9, 0xDD, 0x7F, 0xFF
-
+	DB 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08
+	DB 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10
+;; ground
+ORG 0x620
+	DB 0xCF, 0x49, 0x79, 0x49, 0xCF, 0x49, 0x79, 0x49
+	DB 0xCF, 0x49, 0x79, 0x49, 0xCF, 0x49, 0x79, 0x49
+	
+	
+	
 ORG 0x700
 	DB 0x00, 0xff, 0xff, 0x03, 0x03, 0xff, 0xff, 0x00
 	DB 0x00, 0xff, 0xff, 0x70, 0x0E, 0xff, 0xff, 0x00
