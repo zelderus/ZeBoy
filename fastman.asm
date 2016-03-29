@@ -17,7 +17,7 @@
 ;
 ;				PORTS
 ;	
-;	P1 out to LCD (8 bit data line)
+;	P1 out to LCD (8 bit data bus)
 ;
 ;	P3 out to LCD (commands)
 ;	P3.:
@@ -37,7 +37,7 @@
 	LCD_RES	EQU P3.4
 	LCD_A0 	EQU P3.5	; -- but not used directy in code
 	
-	INT_BTN EQU P3.2	; out interrupt
+	INT_BTN EQU P3.2	; in interrupt
 	
 
 ;;;;;;;;;;;;;;;;;;;;;
@@ -54,11 +54,16 @@
 	
 ; ++++++++++++++++++++++++++++++++++++++++++++++++++++
 ; constants
-	FIRSTADDRIGHT	EQU	0x13	;0x00 0x13 !!! WTF !!!
-	GAME_FLAG_ADDR	EQU 0x40
-
-
-
+	FIRSTADDRIGHT		EQU	0x13	;0x00 0x13 !!! WTF !!!
+	
+	ADDR_GAME_FLAG		EQU 0x40
+	ADDR_OFFSET_AIR		EQU 0x41
+	ADDR_OFFSET_GRN		EQU 0x42
+	ADDR_OFFSET_OBS		EQU 0x43
+	ADDR_OFFSET_OBS_FR	EQU 0x44
+	ADDR_MAN_FRAME		EQU 0x45
+	ADDR_MAN_FLAG		EQU 0x46
+	ADDR_MAN_OBST		EQU 0x47
 
 ORG 0x00
 	LJMP MAIN
@@ -88,23 +93,7 @@ ORG 25H ;locate beginning of rest of program
 ORG 0x30 ;0x0A
 
 
-;; test
-DOTEST:
-	MOV B, #0x40	; get start addr
-	; write to RAM
-	MOV R1, B		; set start address
-	MOV @R1, #0x55	; write data
-	INC R1			; next addr
-	MOV @R1, #0x66	; write data
-	; read from RAM
-	MOV R1, B		; set start address
-	MOV A, R1		; read addr
-	MOV A, @R1		; read data
-	INC R1
-	MOV A, @R1		; read data
-	RET
-	
-	
+
 
 ;; INIT
 ; выключение прерываний (как правило на время инициализации)
@@ -131,34 +120,42 @@ INITBUTTONINT:
 ;
 ; =====================
 MAIN:
-	;ACALL SEG7LOOP ;DOTEST
 	ACALL DISINTS
 	ACALL LCDINIT
-	
-	MOV R1, #GAME_FLAG_ADDR		; set address
-	MOV @R1, #0x00		; write data (GAME FLAG)
-	MOV R1, #0x41		; set address
-	MOV @R1, #0x00		; write data
-	MOV R1, #0x42		; set address
-	MOV @R1, #0x00		; write data
-	MOV R1, #0x43		; set address
-	MOV @R1, #0x00		; write data
-	MOV R1, #0x44		; set address
-	MOV @R1, #0x00		; write data
-	
+	ACALL RESETGAME
 	ACALL INITBUTTONINT
 	ACALL MAINLOOP
+	
+
+RESETGAME:
+	MOV R1, #ADDR_GAME_FLAG		; set address
+	MOV @R1, #0x00		; write data (GAME FLAG)
+	MOV R1, #ADDR_OFFSET_AIR		; set address
+	MOV @R1, #0x00		; write data
+	MOV R1, #ADDR_OFFSET_GRN		; set address
+	MOV @R1, #0x00		; write data
+	MOV R1, #ADDR_OFFSET_OBS		; set address
+	MOV @R1, #0x00		; write data
+	MOV R1, #ADDR_OFFSET_OBS_FR		; set address
+	MOV @R1, #0x00		; write data
+	
+	MOV R1, #ADDR_MAN_FRAME		; set address
+	MOV @R1, #0x00		; write data
+	MOV R1, #ADDR_MAN_FLAG		; set address
+	MOV @R1, #0x00		; write data
+	MOV R1, #ADDR_MAN_OBST		; set address
+	MOV @R1, #0x00		; write data
+	RET
+	
 	
 	
 MAINLOOP:
 	ACALL LCDCLEAR
-	ACALL DRAW_TABLE
+	ACALL DRAW_TABLE ; static table
 
 	DONO:
-		;MOV R5, #10	; cycle
 		ACALL LCDDRAW
 	
-		;DJNZ R5, DONO
 		JMP DONO
 	RET
 	
@@ -173,16 +170,16 @@ INT_BUTTON:
 	PUSH ACC
 	ACALL SETBANK2
 	
-	;MOV R1, #GAME_FLAG_ADDR		; set address
+	;MOV R1, #ADDR_GAME_FLAG		; set address
 	;MOV A, @R1					; read data (GAME FLAG)
 	;INC A
 	;MOV @R1, A
 	
-	; A is GAMEFLAG data
-	SETB P3.7
-	;MOV A, #1
-	;ACALL DELAYS
-	CLR P3.7
+	; TODO: прыгаем
+	;ADDR_MAN_FRAME
+	MOV R1, #ADDR_MAN_FLAG
+	MOV A, #0x01	; флаг прыжка
+	MOV @R1, A
 	
 	; restore
 	ACALL SETBANK0
@@ -205,7 +202,6 @@ DELAYS:	; A = times
 	LMXZ:
 		MOV R6, #4 ;#230
 		LXZ:
-		
 			MOV R5, #250
 			LMXD:
 				MOV R4, #146 ;#230
@@ -218,7 +214,6 @@ DELAYS:	; A = times
 					NOP
 					DJNZ R4, LXD
 				DJNZ R5, LMXD
-				
 			DJNZ R6, LXZ
 		DJNZ R7, LMXZ
 	RET
@@ -386,7 +381,6 @@ LCDCLEAR:
 	; reset addr
 	;MOV R0, #0xE2
 	;ACALL LCDWRITE_CODE_L
-	
 	MOV R4, #4	; page cycle
 	LCDCLEAR_PAGE:
 		; 4 to 0
@@ -419,7 +413,6 @@ LCDCLEAR:
 		LCDCLEAR_PAGE_RIGHT:
 			ACALL LCDWRITE_DATA_R
 			DJNZ R3, LCDCLEAR_PAGE_RIGHT
-		
 		DJNZ R4, LCDCLEAR_PAGE
 	; STEP END
 	ACALL STEPEND
@@ -430,11 +423,6 @@ LCDCLEAR:
 ; ----------------------
 LCDDRAW:
 	
-	; reset addr
-	;MOV R0, #0xE2
-	;ACALL LCDWRITE_CODE_L
-	;ACALL LCDWRITE_CODE_R
-	
 
 	; score
 	ACALL DRAW_UPDATE_TABLE
@@ -442,24 +430,25 @@ LCDDRAW:
 	
 	
 	; air
-	;ACALL DRAW_AIR 
 	MOV DPTR, #DDD_DATA_AIR
 	MOV R3, #0xB8
-	MOV R4, #0x40
+	MOV R4, #ADDR_OFFSET_AIR
 	ACALL DRAW_RODR_L
 	
 	
 	; ground
-	;ACALL DRAW_GROUND
 	MOV DPTR, #DDD_DATA_GROUND
 	MOV R3, #0xBB
-	MOV R4, #0x41
+	MOV R4, #ADDR_OFFSET_GRN
 	ACALL DRAW_RODR_L
 	
 	
+	; obstacles
+	ACALL DRAW_OBST
+
+	; man
+	ACALL DRAW_MAN
 	
-	; next frame
-	;ACALL NEXT_OFFSET
 
 	;MOV A, #1
 	;ACALL DELAYS
@@ -476,21 +465,30 @@ LCDDRAW:
 ; рисуем правую часть экрана, статика (рамка)
 ;
 DRAW_TABLE:
+
+	; top
+	MOV R3, #0xB8
+	ACALL DRAW_TABLE_ROW
+		
+	; bottom
+	MOV R3, #0xBB
+	ACALL DRAW_TABLE_ROW
+		
+	RET
+	
+DRAW_TABLE_ROW: ; R3 = page (0xB8 .. 0xBB)
 	MOV R0, #0xE2		; reset addr
 	ACALL LCDWRITE_CODE_R
-	MOV R0, #0xB8		; page
+	MOV A, R3
+	MOV R0, A ;#0xB8		; page
 	ACALL LCDWRITE_CODE_R
 	MOV R0, #FIRSTADDRIGHT		; addr
 	ACALL LCDWRITE_CODE_R
-	; top
+	; draw
 	MOV DPTR, #DDD_DATA_TBLB
 	MOV R2, #61
 	MOV R3, #0
 	_ddro_tbl_stat_1:
-		; reset cycle
-		CJNE R3, #7, _ddro_tbl_stat_offs_1
-		MOV R3, #0
-		_ddro_tbl_stat_offs_1:
 		; addr
 		MOV A, R3
 		MOVC A, @A+DPTR
@@ -500,34 +498,10 @@ DRAW_TABLE:
 		; next addr
 		INC R3
 		DJNZ R2, _ddro_tbl_stat_1
-		
-	; bottom
-	MOV R0, #0xE2		; reset addr
-	ACALL LCDWRITE_CODE_R
-	MOV R0, #0xBB		; page
-	ACALL LCDWRITE_CODE_R
-	MOV R0, #FIRSTADDRIGHT		; addr
-	ACALL LCDWRITE_CODE_R
-	; top
-	MOV DPTR, #DDD_DATA_TBLB
-	MOV R2, #61
-	MOV R3, #0
-	_ddro_tbl_stat_2:
-		; reset cycle
-		CJNE R3, #7, _ddro_tbl_stat_offs_2
-		MOV R3, #0
-		_ddro_tbl_stat_offs_2:
-		; addr
-		MOV A, R3
-		MOVC A, @A+DPTR
-		; draw
-		MOV R0, A
-		ACALL LCDWRITE_DATA_R
-		; next addr
-		INC R3
-		DJNZ R2, _ddro_tbl_stat_2
-		
 	RET
+	
+	
+	
 	
 ;
 ; рисуем правую часть экрана, очки
@@ -539,24 +513,12 @@ DRAW_UPDATE_TABLE:
 	RET
 	
 	
-; next offset
-NEXT_OFFSET:
-	; get air offset
-	MOV R1, #0x43		; set start address
-	MOV A, @R1			; read data
-	; write next offset
-	INC A
-	; reset cycle
-	CJNE A, #62, _dd_offset_1
-	MOV A, #0
-_dd_offset_1:
-	;MOV R1, #0x40
-	MOV @R1, A	; write data
-	RET
+	
 
 	
+	
 ;
-; Отрисовка спрайтов
+; Отрисовка циклического ряда (16) спрайтов (8x8)
 ; params:
 ;	DPTR 	= start data addr (Sprites)
 ;	R3 		= LCD page (0xB8 .. 0xBB)
@@ -603,37 +565,111 @@ DRAW_RODR_L:
 	
 	
 	
+	
+	
+	
+	
+	
+	
+	
+	
 ;
 ; рисуем преграды
 ;
 DRAW_OBST:
 	
-	; TODO !!!!!!!!!!!!!!!
-	;; LEFT
 	MOV R0, #0xE2		; reset addr
 	ACALL LCDWRITE_CODE_L
-	MOV R0, #0xB8		; page 0
+	MOV A, R3
+	MOV R0, #0xBA		; page 3
 	ACALL LCDWRITE_CODE_L
 	MOV R0, #0x13		; addr
 	ACALL LCDWRITE_CODE_L
-			
-	; get frame offset
-	MOV R1, #0x40		; set start address
-	MOV A, @R1			; read data
-		
+	
 	; offset
-	MOV DPTR, #0x600 	; start addrs of Air
-	;MOV DPL, A			; set offset
+	MOV DPTR, #DDD_DATA_OBST 
+	; add frame offset
+	MOV R1, #ADDR_OFFSET_OBS_FR
+	MOV A, @R1
+	; max frames
+	CJNE A, #DDL_OBST_ROWS, _ddro_obt_rrf
+		MOV A, #0
+	_ddro_obt_rrf:
+	MOV R4, A
+	MOV A, DPL
+	; сложение больше байта !!!
+	ADD A, R4
+	MOV DPL, A
+	JNB PSW.7, _ddro_obt_jjb	; carry flag (нам достаточно и одного сдвига, не так много у нас сцен)
+		INC DPH
+	_ddro_obt_jjb:
 	
 	; draw
-	MOV R2, #60
-	MOV R3, A	; R3 as offset
+	MOV R2, #61
+	MOV R3, #0
+	_ddro_ag_obt:
+		; addr
+		MOV A, R3
+		MOVC A, @A+DPTR
+		; draw
+		MOV R0, A
+		ACALL LCDWRITE_DATA_L
+		
+		; TODO: занести в память флаг, если мы на позиции Man (под ним) !!!!!!!!
+		; проверяем 8 бит
+		; ADDR_MAN_OBST
+		
+		; если не прыгаем
+		;ADDR_MAN_FLAG == 0
+		
+		
+		
+		; next addr
+		INC R3
+		DJNZ R2, _ddro_ag_obt
+
+	; write offset
+	MOV R1, #ADDR_OFFSET_OBS_FR
+	INC R4 ; next frame
+	MOV A, R4
+	MOV @R1, A	; write data
 	
-	_DRSSn_4:
-		; reset cycle
-		CJNE R3, #15, _dd44_offset_1
-		MOV R3, #0
-		_dd44_offset_1:
+	RET
+	
+	
+	
+;
+; рисуем Man
+;
+DRAW_MAN:
+	
+	;RET	; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	; TODO: рисуем только верхний байт
+	
+	
+	MOV R0, #0xE2		; reset addr
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0xB9		; page 2
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0x13		; addr
+	ACALL LCDWRITE_CODE_L
+	
+	; get frame offset
+	;MOV A, R4
+	;MOV R1, A		; set start address
+	;MOV A, @R1			; read data
+	
+	; кадр анимции
+	;если ADDR_MAN_FLAG == 1, ADDR_MAN_FRAME++; если кончились кадры на полет (ADDR_MAN_FRAME == DDL_MAN_FRAMES), то ADDR_MAN_FLAG = 0, ADDR_MAN_FRAME = 0
+	;ADDR_MAN_FRAME
+	
+	; offset
+	MOV DPTR, #DDD_DATA_MAN_UP 	; start addrs of Man
+	;MOV DPL, A			; set offset
+	; draw
+	MOV R2, #8
+	MOV R3, #0
+	_ddro_ag_man:
 		; addr
 		MOV A, R3
 		MOVC A, @A+DPTR
@@ -642,34 +678,15 @@ DRAW_OBST:
 		ACALL LCDWRITE_DATA_L
 		; next addr
 		INC R3
-		DJNZ R2, _DRSSn_4
+		DJNZ R2, _ddro_ag_man
 		
 	; write offset
-	MOV A, R3
-	MOV R1, #0x40		; set start address
-	MOV @R1, A	; write data
-
+	;MOV A, R4
+	;MOV R1, A		; set start address
+	;MOV A, R3
+	;MOV @R1, A	; write data
+	
 	RET
-	
-	
-	
-;#################################################
-;#############    Draw helper   ##################
-;#################################################
-
-; вывод Символа (8x8 bit) в текущую позицию дисплея
-DRSYMBL: ; DPTR = addr of symb
-	;MOV DPTR, #0x600	
-	MOV R2, #8 ; cols of 8 bytes (symbol) 
-	_DRSS:
-		MOV A, #0
-		MOVC A, @A+DPTR
-		MOV R0, A
-		ACALL LCDWRITE_DATA_L 	;! !!!! left
-		INC DPTR
-		DJNZ R2, _DRSS
-	RET
-	
 	
 
 
@@ -677,30 +694,99 @@ DRSYMBL: ; DPTR = addr of symb
 ;##############    DATA   ########################
 ;#################################################
 
+
+;; man 
+DDL_MAN_FRAMES	EQU 0x09	; 9 кадров на анимацию прыжка (собственно и длина прыжка)
+; TODO: !!!! check mem !!!!
+DDD_DATA_MAN_DOWN	EQU 0x5E5	; нижняя часть по кадрам
+ORG 0x5E5
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+
+DDD_DATA_MAN_UP	EQU 0x62D		; верхняя часть по кадрам
+ORG 0x62D
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
+	
+
+;; obstacles
+; тут стоит переделать, чтобы хранить ID на объекты, увеличив длину уровня в рамках байта (для скролла)
+; либо оставить так, если очень важна скорость (итак нету видео буфера в этой версии)
+DDL_OBST_ROWS	EQU 0xF0
+DDD_DATA_OBST	EQU 0x675	; у каждого препятствия должен быть 8 бит всегда установлен на протяжении всего препятствия
+ORG 0x675
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0xF8, 0xF8, 0xFC, 0xFF, 0xFF, 0xFC, 0xF8, 0xF8, 0x00, 0x00
+	
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0xE0, 0xF0, 0xB8, 0xB8, 0xB8, 0xB8, 0xF0, 0xE0, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0xE0, 0xE0, 0xE0, 0xE0, 0xE0, 0xE0, 0xE0
+	DB 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0xE0, 0xF0, 0xB8, 0xBC, 0xB8, 0xB8, 0xF0, 0xE0, 0x00, 0x00
+	
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0xF8, 0xE0, 0xF8, 0xE0, 0xF8, 0xE0
+	DB 0xF8, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x98, 0x88, 0x88, 0xFC, 0xFC, 0x88, 0x88, 0x98
+	
+	; repeat first (для упрощения расчетов)
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0xF8, 0xF8, 0xFC, 0xFF, 0xFF, 0xFC, 0xF8, 0xF8, 0x00, 0x00
+	
 ;; air
-DDD_DATA_AIR	EQU 0x600
-ORG 0x600
+DDD_DATA_AIR	EQU 0x7A1
+ORG 0x7A1
 	DB 0x08, 0x1C, 0x36, 0x22, 0x20, 0x20, 0x38, 0x0C
 	DB 0x04, 0x0E, 0x1A, 0x12, 0x10, 0x18, 0x08, 0x08
 ;; ground
-DDD_DATA_GROUND	EQU 0x610
-ORG 0x610
+DDD_DATA_GROUND	EQU 0x7B1
+ORG 0x7B1
 	DB 0xCF, 0xC9, 0xF9, 0xC9, 0xCF, 0xC9, 0xF9, 0xC9
 	DB 0xCF, 0xC9, 0xF9, 0xC9, 0xCF, 0xC9, 0xF9, 0xC9
-;; table border
-DDD_DATA_TBLB	EQU 0x620
-ORG 0x620
-	DB 0xFF, 0xE7, 0xC3, 0x81, 0x81, 0xC3, 0xE7, 0xFF
-	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-	
-	
-	
-ORG 0x700
-	DB 0x00, 0xff, 0xff, 0x03, 0x03, 0xff, 0xff, 0x00
-	DB 0x00, 0xff, 0xff, 0x70, 0x0E, 0xff, 0xff, 0x00
-	DB 0x00, 0xff, 0xff, 0xC3, 0xC3, 0xe7, 0xe7, 0x00
-	DB 0x00, 0xcf, 0xef, 0x1d, 0x1d, 0xff, 0xff, 0x00
+;; table border (static)
+DDD_DATA_TBLB	EQU 0x7C1
+ORG 0x7C1
+	DB 0xFF, 0xFF, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA
+	DB 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA
+	DB 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA
+	DB 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA
+	DB 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA
+	DB 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xFF
+	DB 0xFF
 
+; last byte	
 DATABR:
 	DB 0x40
 

@@ -23,7 +23,7 @@
 ;
 ;				PORTS
 ;	
-;	P1 out to LCD (8 bit data line)
+;	P1 out to LCD (8 bit data bus)
 ;
 ;	P3 out to LCD (commands)
 ;	P3.:
