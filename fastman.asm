@@ -87,6 +87,7 @@ ORG 25H ;locate beginning of rest of program
 ;#################################################
 ORG 0x30 ;0x0A
 
+
 ;; test
 DOTEST:
 	MOV B, #0x40	; get start addr
@@ -102,8 +103,6 @@ DOTEST:
 	INC R1
 	MOV A, @R1		; read data
 	RET
-
-	
 	
 	
 
@@ -122,10 +121,6 @@ INITBUTTONINT:
 	SETB EX0 ;=IE.0	; enable external interrupt 0
 	;SETB INT_BTN
 	RET
-	
-	
-	
-	
 	
 	
 
@@ -160,10 +155,11 @@ MAINLOOP:
 	ACALL DRAW_TABLE
 
 	DONO:
-		MOV R5, #10	; cycle
+		;MOV R5, #10	; cycle
 		ACALL LCDDRAW
 	
-		DJNZ R5, DONO
+		;DJNZ R5, DONO
+		JMP DONO
 	RET
 	
 	
@@ -226,7 +222,7 @@ DELAYS:	; A = times
 			DJNZ R6, LXZ
 		DJNZ R7, LMXZ
 	RET
-; миллисекунда (10-3)
+; миллисекунда (10e-3)
 DELAYMS:	; A = times
 	MOV R7, A
 	LMX:
@@ -241,7 +237,7 @@ DELAYMS:	; A = times
 			DJNZ R6, LX
 		DJNZ R7, LMX
 	RET
-; микросекунда (10-6)
+; микросекунда (10e-6)
 DELAYNS:	; A = times
 	MOV R7, A
 	LMX3:
@@ -251,7 +247,7 @@ DELAYNS:	; A = times
 			DJNZ R6, LX3
 		DJNZ R7, LMX3
 	RET
-; наносекунда (10-9)
+; наносекунда (10e-9)
 DELAYUS:	; A = times
 	MOV R7, A
 	LMX2:
@@ -267,7 +263,7 @@ DELAYUS:	; A = times
 STEPEND:
 	MOV P1, #0x00
 	RET
-	
+; смена банков регистров
 SETBANK0:
 	CLR PSW.3
 	CLR PSW.4
@@ -349,12 +345,6 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	; set E,RW,A0,CS
 	; without fix RES
 	MOV P3, R1
-	
-	; with fix RES (если неуверены, что во внешке оставили RES=1)
-	;MOV A, R1
-	;ORL A, #0x10	; RES forever 1
-	;MOV P3, A; R1 - fixed R1
-		
 	;s_mtData(b)
 	MOV P1, R0
 	;s_delayNs(40.0)	#>40
@@ -372,22 +362,18 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;ACALL DELAYNS
 	RET
 LCDWRITE_CODE_L:	; R0 = data byte
-	;MOV R1, #0x19 ;#0b00011001 ;(E=1, RW=0, A0=0, CS=1, RES=1)
 	MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=0)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_CODE_R:	; R0 = data byte
-	;MOV R1, #0x11 ;#0b00010001 ;(E=1, RW=0, A0=0, CS=0, RES=1)
 	MOV R1, #0x15 ;#0b00010101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=0)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_L:	; R0 = data byte
-	;MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, A0=1, CS=1, RES=1)
 	MOV R1, #0x3D ;#0b00111101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_R:	; R0 = data byte
-	;MOV R1, #0x15 ;#0b00010101 ;(E=1, RW=0, A0=1, CS=0, RES=1)
 	MOV R1, #0x35 ;#0b00110101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
@@ -398,8 +384,8 @@ LCDWRITE_DATA_R:	; R0 = data byte
 ; ----------------------
 LCDCLEAR:
 	; reset addr
-	MOV R0, #0xE2
-	ACALL LCDWRITE_CODE_L
+	;MOV R0, #0xE2
+	;ACALL LCDWRITE_CODE_L
 	
 	MOV R4, #4	; page cycle
 	LCDCLEAR_PAGE:
@@ -408,21 +394,16 @@ LCDCLEAR:
 		SUBB A, R4
 		MOV R2, A
 		;; LEFT
-		;s_writeCodeL(p|0xB8)
 		MOV A, R2
 		ORL A, #0xB8
 		MOV R0, A
 		ACALL LCDWRITE_CODE_L
-		;s_writeCodeL(0x13)
 		MOV R0, #0x13
 		ACALL LCDWRITE_CODE_L
 		; left draw
-		MOV R0, #0x00 ; clear symbol
-		MOV R3, #61	; row cycle
+		MOV R0, #0x00 	; clear symbol
+		MOV R3, #61		; row cycle
 		LCDCLEAR_PAGE_LEFT:
-			;MOV A, R3
-			; DRAW 0x00
-			;MOV R0, #0x00
 			ACALL LCDWRITE_DATA_L
 			DJNZ R3, LCDCLEAR_PAGE_LEFT
 		;; RIGHT
@@ -430,15 +411,12 @@ LCDCLEAR:
 		ORL A, #0xB8
 		MOV R0, A
 		ACALL LCDWRITE_CODE_R
-		MOV R0, #FIRSTADDRIGHT ;#0x00 #0x13  !!! WTF !!!
+		MOV R0, #FIRSTADDRIGHT
 		ACALL LCDWRITE_CODE_R
 		; right draw
-		MOV R0, #0x00 ; clear symbol
-		MOV R3, #61	; row cycle
+		MOV R0, #0x00 	; clear symbol
+		MOV R3, #61		; row cycle
 		LCDCLEAR_PAGE_RIGHT:
-			;MOV A, R3
-			; DRAW 0x00
-			;MOV R0, #0x00
 			ACALL LCDWRITE_DATA_R
 			DJNZ R3, LCDCLEAR_PAGE_RIGHT
 		
@@ -648,7 +626,7 @@ DRAW_OBST:
 	;MOV DPL, A			; set offset
 	
 	; draw
-	MOV R2, #61
+	MOV R2, #60
 	MOV R3, A	; R3 as offset
 	
 	_DRSSn_4:

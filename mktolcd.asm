@@ -2,9 +2,15 @@
 
 ; ######################################################
 ;
-;	Программа под MK AT89C2051 
+;	Программа (driver) под MK AT89C2051 
 ;	для работы с дисплеем MT-12232A
 ;
+;	Драйвер содержит основные функции:
+;		acall LCDINIT	- инициализация дисплея
+;		acall LCDCLEAR	- очистка дисплея
+;
+;	на основе этого, пример вывода картинки:
+;		acall LCDDRAW
 ;
 ; ZeLDER
 ; ######################################################
@@ -23,18 +29,21 @@
 ;	P3.:
 ;		0 - E
 ;		1 - RW
-;		2 - A0
+;		2 - 
 ;		3 - CS
 ;		4 - RES
-;		5 - 
+;		5 - A0
 ;		7 -
 ;
 ; ++++++++++++++++++++++++++++++++++++++++++++++++++++
 	LCD_E 	EQU P3.0
-	LCD_RW 	EQU P3.1
-	LCD_A0 	EQU P3.2
-	LCD_CS	EQU P3.3
+	LCD_RW 	EQU P3.1	; -- but not used directy in code
+	LCD_CS	EQU P3.3	; -- but not used directy in code
 	LCD_RES	EQU P3.4
+	LCD_A0 	EQU P3.5	; -- but not used directy in code
+	
+	INT_BTN EQU P3.2	; for in interrupt
+	
 
 	PPLED	EQU P3.7
 	PPBLED	EQU P3.5
@@ -47,7 +56,11 @@
 ;;	R0 - data byte for LCD
 ;;	R1 - commands for LCD
 ;;	
-	
+
+
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++
+; constants
+	FIRSTADDRIGHT	EQU	0x00	;0x00 0x13 !!! WTF !!!
 
 
 ORG 0x00
@@ -56,11 +69,7 @@ ORG 0x00
 
 ;#################################################
 ;Interrupts
-
-; TODO: interrupts
-; TODO: timers
-
-ORG 03H ;external interrupt 0
+ORG 03H  ;external interrupt 0 (вектор адреса поумолчанию)
 RETI
 ORG 0BH ;timer 0 interrupt
 RETI
@@ -76,24 +85,7 @@ ORG 25H ;locate beginning of rest of program
 
 ;#################################################
 ORG 0x30 ;0x0A
-;; test
-DOTEST:
-	MOV B, #0x40	; get start addr
-	; write to RAM
-	MOV R1, B		; set start address
-	MOV @R1, #0x55	; write data
-	INC R1			; next addr
-	MOV @R1, #0x66	; write data
-	; read from RAM
-	MOV R1, B		; set start address
-	MOV A, R1		; read addr
-	MOV A, @R1		; read data
-	INC R1
-	MOV A, @R1		; read data
-	RET
 
-	
-	
 	
 
 ;; INIT
@@ -113,7 +105,6 @@ INITIALIZE: ;set up control registers & ports
 MAIN:
 	CLR PPLED
 	CLR PPBLED
-	;ACALL SEG7LOOP ;DOTEST
 	ACALL INITIALIZE
 	ACALL LCDINIT
 	ACALL MAINLOOP
@@ -121,85 +112,18 @@ MAIN:
 	
 MAINLOOP:
 	ACALL LCDCLEAR
-	ACALL LCDDRAW ; Draw once
+	;ACALL LCDDRAW ; Draw once
 	DONO:
-		MOV R5, #10	; cycle
+		;MOV R5, #10	; cycle
 		;ACALL LCDDRAW - Do nothing
 	
-		DJNZ R5, DONO
+		;DJNZ R5, DONO
+		JMP DONO
 	RET
 	
 	
-; =====================
-;
-; Helpers
-;
-; =====================
-; секунда
-DELAYS:	; A = times
-	MOV R7, A
-	LMXZ:
-		MOV R6, #4 ;#230
-		LXZ:
-		
-			MOV R2, #250
-			LMXD:
-				MOV R3, #146 ;#230
-				LXD:
-					NOP
-					NOP
-					NOP
-					NOP
-					NOP
-					NOP
-					DJNZ R3, LXD
-				DJNZ R2, LMXD
-				
-			DJNZ R6, LXZ
-		DJNZ R7, LMXZ
-	RET
-; миллисекунда (10-3)
-DELAYMS:	; A = times
-	MOV R7, A
-	LMX:
-		MOV R6, #146 ;#230
-		LX:
-			NOP
-			NOP
-			NOP
-			NOP
-			NOP
-			NOP
-			DJNZ R6, LX
-		DJNZ R7, LMX
-	RET
-; микросекунда (10-6)
-DELAYNS:	; A = times
-	MOV R7, A
-	LMX3:
-		MOV R6, #1 ;#230
-		LX3:
-			;NOP
-			DJNZ R6, LX3
-		DJNZ R7, LMX3
-	RET
-; наносекунда (10-9)
-DELAYUS:	; A = times
-	MOV R7, A
-	LMX2:
-		MOV R6, #2 ;#230
-		LX2:
-			NOP
-			NOP
-			NOP
-			DJNZ R6, LX2
-		DJNZ R7, LMX2
-	RET
 
-STEPEND:
-	MOV P1, #0x00
-	RET
-	
+; смена банков регистров
 SETBANK0:
 	CLR PSW.3
 	CLR PSW.4
@@ -215,6 +139,62 @@ SETBANK2:
 SETBANK3:
 	SETB PSW.3
 	SETB PSW.4
+	RET
+	
+	
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	   	     DRIVER			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
+	
+; =====================
+;
+; Helpers
+;
+; =====================
+; миллисекунда (10e-3)
+DELAYMS:	; A = times
+	MOV R7, A
+	LMX:
+		MOV R6, #146 ;#230
+		LX:
+			NOP
+			NOP
+			NOP
+			NOP
+			NOP
+			NOP
+			DJNZ R6, LX
+		DJNZ R7, LMX
+	RET
+; микросекунда (10e-6)
+DELAYNS:	; A = times
+	MOV R7, A
+	LMX3:
+		MOV R6, #1 ;#230
+		LX3:
+			;NOP
+			DJNZ R6, LX3
+		DJNZ R7, LMX3
+	RET
+; наносекунда (10e-9)
+DELAYUS:	; A = times
+	MOV R7, A
+	LMX2:
+		MOV R6, #2 ;#230
+		LX2:
+			NOP
+			NOP
+			NOP
+			DJNZ R6, LX2
+		DJNZ R7, LMX2
+	RET
+	
+STEPEND:
+	MOV P1, #0x00
 	RET
 	
 ; =====================
@@ -274,8 +254,6 @@ LCDINIT:
 	; STEP END
 	ACALL STEPEND
 	RET
-
-
 ; ----------------------	
 ; Подача кода/команды в дисплей
 ; ----------------------
@@ -283,8 +261,7 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	; set E,RW,A0,CS
 	; without fix RES
 	MOV P3, R1
-	
-	; with fix RES (если неуверены, что во внешке оставили RES=1)
+	; with fix RES (если не уверены, что во внешке оставили RES=1)
 	;MOV A, R1
 	;ORL A, #0x10	; RES forever 1
 	;MOV P3, A; R1 - fixed R1
@@ -306,23 +283,25 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;ACALL DELAYNS
 	RET
 LCDWRITE_CODE_L:	; R0 = data byte
-	MOV R1, #0x19 ;#0b00011001 ;(E=1, RW=0, A0=0, CS=1, RES=1)
+	;MOV R1, #0x19 ;#0b00011001 ;(E=1, RW=0, A0=0, CS=1, RES=1)
+	MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=0)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_CODE_R:	; R0 = data byte
-	MOV R1, #0x11 ;#0b00010001 ;(E=1, RW=0, A0=0, CS=0, RES=1)
+	;MOV R1, #0x11 ;#0b00010001 ;(E=1, RW=0, A0=0, CS=0, RES=1)
+	MOV R1, #0x15 ;#0b00010101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=0)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_L:	; R0 = data byte
-	MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, A0=1, CS=1, RES=1)
+	;MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, A0=1, CS=1, RES=1)
+	MOV R1, #0x3D ;#0b00111101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_R:	; R0 = data byte
-	MOV R1, #0x15 ;#0b00010101 ;(E=1, RW=0, A0=1, CS=0, RES=1)
+	;MOV R1, #0x15 ;#0b00010101 ;(E=1, RW=0, A0=1, CS=0, RES=1)
+	MOV R1, #0x35 ;#0b00110101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
-	
-	
 ; ----------------------	
 ; Очистка дисплея
 ; ----------------------
@@ -339,21 +318,16 @@ LCDCLEAR:
 		SUBB A, R4
 		MOV R2, A
 		;; LEFT
-		;s_writeCodeL(p|0xB8)
 		MOV A, R2
 		ORL A, #0xB8
 		MOV R0, A
 		ACALL LCDWRITE_CODE_L
-		;s_writeCodeL(0x13)
 		MOV R0, #0x13
 		ACALL LCDWRITE_CODE_L
 		; left draw
-		MOV R0, #0x00 ; clear symbol
-		MOV R3, #61	; row cycle
+		MOV R0, #0x00 	; clear symbol
+		MOV R3, #61		; col cycle
 		LCDCLEAR_PAGE_LEFT:
-			;MOV A, R3
-			; DRAW 0x00
-			;MOV R0, #0x00
 			ACALL LCDWRITE_DATA_L
 			DJNZ R3, LCDCLEAR_PAGE_LEFT
 		;; RIGHT
@@ -361,15 +335,12 @@ LCDCLEAR:
 		ORL A, #0xB8
 		MOV R0, A
 		ACALL LCDWRITE_CODE_R
-		MOV R0, #0x13 ;#0x00  ;!!! WTF !!!
+		MOV R0, #FIRSTADDRIGHT
 		ACALL LCDWRITE_CODE_R
 		; right draw
-		MOV R0, #0x00 ; clear symbol
-		MOV R3, #61	; row cycle
+		MOV R0, #0x00 	; clear symbol
+		MOV R3, #61		; col cycle
 		LCDCLEAR_PAGE_RIGHT:
-			;MOV A, R3
-			; DRAW 0x00
-			;MOV R0, #0x00
 			ACALL LCDWRITE_DATA_R
 			DJNZ R3, LCDCLEAR_PAGE_RIGHT
 		
@@ -377,6 +348,17 @@ LCDCLEAR:
 	; STEP END
 	ACALL STEPEND
 	RET
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	     end of DRIVER		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
+	
+	
+	
+	
 	
 ; ----------------------	
 ; Рисуем в дисплей
