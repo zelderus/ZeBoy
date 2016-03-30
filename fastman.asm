@@ -762,7 +762,7 @@ DRAW_MAN:
 	MOV DPTR, #DDD_DATA_MAN_DOWN 	; start addrs of Man
 	MOV A, DPL
 	ADD A, R4	; кадров мало, адресация с нуля (переносов нету)
-	MOV DPL, A
+	MOV DPL, A	; итоговый адрес кадра анимации
 	
 	JMP man_down_inbank	; перескакиваем ветку бега
 	
@@ -785,40 +785,17 @@ DRAW_MAN:
 			MOV A, @R1
 			XRL A, #0x01	; смена кадра бега
 			MOV @R1, A
-			;MOV B, #8
-			;MUL AB
-			;MOV DPTR, #DDD_DATA_MAN_RUN 
-			;ADD A, DPL
-			;MOV DPL, A
 			JMP man_run_dr
-			
 		man_run_norres:	
 			; не меняем кадр
 			MOV R1, #ADDR_MAN_FRAMERUN
 			MOV A, @R1
-			;MOV B, #8
-			;MUL AB
-			;MOV DPTR, #DDD_DATA_MAN_RUN 
-			;ADD A, DPL
-			;MOV DPL, A
-			
-			
 		man_run_dr:
 			MOV B, #8
 			MUL AB
 			MOV DPTR, #DDD_DATA_MAN_RUN 
 			ADD A, DPL
-			MOV DPL, A
-						
-		;MOV R1, #ADDR_MAN_FRAMERUN
-		;MOV A, @R1
-		;XRL A, #0x01	; смена кадра бега
-		;MOV @R1, A
-		;MOV B, #8
-		;MUL AB
-		;MOV DPTR, #DDD_DATA_MAN_RUN 
-		;ADD A, DPL
-		;MOV DPL, A
+			MOV DPL, A	; итоговый адрес кадра анимации
 	
 	
 	
@@ -872,7 +849,7 @@ ORG 0x3F0
 	DB 0x00, 0x44, 0x4A, 0x3E, 0x0F, 0x1E, 0x24, 0xC0
 	DB 0x00, 0x20, 0x3E, 0xEF, 0x3E, 0x04, 0x02, 0x00
 	
-DDL_MAN_FRAMES	EQU 0x18	; 24 кадра на анимацию прыжка (собственно и длина прыжка)
+DDL_MAN_FRAMES		EQU 0x18	; 24 кадра на анимацию прыжка (собственно и длина прыжка)
 DDD_DATA_MAN_DOWN	EQU 0x400	; нижняя часть по кадрам	(нижний DPL адрес должен быть ближе к 0, чтобы проще складывать адрес в 8 битке)
 ORG 0x400
 	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
