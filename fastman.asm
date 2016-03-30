@@ -75,7 +75,9 @@ ORG 0x00
 
 
 ORG 03H ;external interrupt 0 (вектор адреса поумолчанию)
+	PUSH PSW
 	ACALL INT_BUTTON
+	POP PSW
 RETI
 ORG 0BH ;timer 0 interrupt
 RETI
@@ -166,30 +168,32 @@ MAINLOOP:
 ; нажата кнопка (функция обработка прерывания)
 INT_BUTTON:
 	; save
-	PUSH PSW
+	;PUSH PSW
 	PUSH ACC
-	ACALL SETBANK2
 	
-	;MOV R1, #ADDR_GAME_FLAG		; set address
-	;MOV A, @R1					; read data (GAME FLAG)
-	;INC A
-	;MOV @R1, A
+	; не обрабатываем прерывание это
+	CLR EX0 ;
 	
-	; TODO: прыгаем
-	;ADDR_MAN_FRAME
+	ACALL SETBANK1
+	; прыгаем
 	MOV R1, #ADDR_MAN_FLAG
 	MOV A, #0x01	; флаг прыжка
 	MOV @R1, A
-	
 	; restore
 	ACALL SETBANK0
 	POP ACC
-	POP PSW
+	;POP PSW
 	RET
 	
 	
 	
 	
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	   	   LCD DRIVER		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 ; =====================
 ;
@@ -267,7 +271,7 @@ SETBANK1:
 	SETB PSW.3
 	CLR PSW.4
 	RET
-SETBANK2:
+SETBANK2:	; странности с этим банком (в прерываниях точно)
 	CLR PSW.3
 	SETB PSW.4
 	RET
@@ -331,10 +335,8 @@ LCDINIT:
 	; STEP END
 	ACALL STEPEND
 	RET
-
-
 ; ----------------------	
-; Подача кода/команды в дисплей
+; Подача данных/команды в дисплей
 ; ----------------------
 LCDWRITE:  ; R0 = data byte, R1 = cmd
 	; set E,RW,A0,CS
@@ -372,8 +374,6 @@ LCDWRITE_DATA_R:	; R0 = data byte
 	MOV R1, #0x35 ;#0b00110101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
-	
-	
 ; ----------------------	
 ; Очистка дисплея
 ; ----------------------
@@ -417,49 +417,43 @@ LCDCLEAR:
 	; STEP END
 	ACALL STEPEND
 	RET
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	   end of LCD DRIVER	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
+	
+	
+	
 	
 ; ----------------------	
 ; Рисуем в дисплей
 ; ----------------------
 LCDDRAW:
-	
-
 	; score
 	ACALL DRAW_UPDATE_TABLE
-	
-	
-	
 	; air
 	MOV DPTR, #DDD_DATA_AIR
 	MOV R3, #0xB8
 	MOV R4, #ADDR_OFFSET_AIR
 	ACALL DRAW_RODR_L
-	
-	
 	; ground
 	MOV DPTR, #DDD_DATA_GROUND
 	MOV R3, #0xBB
 	MOV R4, #ADDR_OFFSET_GRN
 	ACALL DRAW_RODR_L
-	
-	
 	; obstacles
 	ACALL DRAW_OBST
-
 	; man
 	ACALL DRAW_MAN
-	
-
-	;MOV A, #1
-	;ACALL DELAYS
-		
 	RET
 
 
+	
 ; ----------------------	
 ; ----------------------	
 ; ----------------------	
-
 
 ;
 ; рисуем правую часть экрана, статика (рамка)
@@ -508,7 +502,7 @@ DRAW_TABLE_ROW: ; R3 = page (0xB8 .. 0xBB)
 ;
 DRAW_UPDATE_TABLE:
 	
-	; TODO
+	; TODO: тут рисуем текущие очки и рекорд !!!
 
 	RET
 	
@@ -560,14 +554,7 @@ DRAW_RODR_L:
 	MOV R1, A		; set start address
 	MOV A, R3
 	MOV @R1, A	; write data
-
 	RET
-	
-	
-	
-	
-	
-	
 	
 	
 	
@@ -577,7 +564,7 @@ DRAW_RODR_L:
 ; рисуем преграды
 ;
 DRAW_OBST:
-	
+
 	MOV R0, #0xE2		; reset addr
 	ACALL LCDWRITE_CODE_L
 	MOV A, R3
@@ -585,7 +572,6 @@ DRAW_OBST:
 	ACALL LCDWRITE_CODE_L
 	MOV R0, #0x13		; addr
 	ACALL LCDWRITE_CODE_L
-	
 	; offset
 	MOV DPTR, #DDD_DATA_OBST 
 	; add frame offset
@@ -613,27 +599,87 @@ DRAW_OBST:
 		MOVC A, @A+DPTR
 		; draw
 		MOV R0, A
-		ACALL LCDWRITE_DATA_L
+		;ACALL LCDWRITE_DATA_L
 		
 		; TODO: занести в память флаг, если мы на позиции Man (под ним) !!!!!!!!
 		; проверяем 8 бит
 		; ADDR_MAN_OBST
-		
 		; если не прыгаем
 		;ADDR_MAN_FLAG == 0
 		
 		
+		; если мы в позиции Персонажа, то учитываем и его спрайт
+		; ?? а надо ли это, если сразу GameOver когда на этой позиции ??
+		CJNE R3, #0, _ddro_mm_0
+			ACALL SETBANK3
+			MOV A, R0
+			ACALL SETBANK0
+			ORL A, R0
+			MOV R0, A
+		_ddro_mm_0:
+		CJNE R3, #1, _ddro_mm_1
+			ACALL SETBANK3
+			MOV A, R1
+			ACALL SETBANK0
+			ORL A, R0
+			MOV R0, A
+		_ddro_mm_1:
+		CJNE R3, #2, _ddro_mm_2
+			ACALL SETBANK3
+			MOV A, R2
+			ACALL SETBANK0
+			ORL A, R0
+			MOV R0, A
+		_ddro_mm_2:
+		CJNE R3, #3, _ddro_mm_3
+			ACALL SETBANK3
+			MOV A, R3
+			ACALL SETBANK0
+			ORL A, R0
+			MOV R0, A
+		_ddro_mm_3:
+		CJNE R3, #4, _ddro_mm_4
+			ACALL SETBANK3
+			MOV A, R4
+			ACALL SETBANK0
+			ORL A, R0
+			MOV R0, A
+		_ddro_mm_4:
+		CJNE R3, #5, _ddro_mm_5
+			ACALL SETBANK3
+			MOV A, R5
+			ACALL SETBANK0
+			ORL A, R0
+			MOV R0, A
+		_ddro_mm_5:
+		CJNE R3, #6, _ddro_mm_6
+			ACALL SETBANK3
+			MOV A, R6
+			ACALL SETBANK0
+			ORL A, R0
+			MOV R0, A
+		_ddro_mm_6:
+		CJNE R3, #7, _ddro_mm_7
+			ACALL SETBANK3
+			MOV A, R7
+			ACALL SETBANK0
+			ORL A, R0
+			MOV R0, A
+		_ddro_mm_7:
+		;-------------------------
 		
+		
+		; рисуем что в R0
+		ACALL LCDWRITE_DATA_L
 		; next addr
 		INC R3
 		DJNZ R2, _ddro_ag_obt
 
-	; write offset
+	; save offset
 	MOV R1, #ADDR_OFFSET_OBS_FR
-	INC R4 ; next frame
+	INC R4 		; next frame
 	MOV A, R4
-	MOV @R1, A	; write data
-	
+	MOV @R1, A	; write
 	RET
 	
 	
@@ -643,29 +689,50 @@ DRAW_OBST:
 ;
 DRAW_MAN:
 	
-	;RET	; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	; TODO: рисуем только верхний байт
-	
-	
 	MOV R0, #0xE2		; reset addr
 	ACALL LCDWRITE_CODE_L
 	MOV R0, #0xB9		; page 2
 	ACALL LCDWRITE_CODE_L
 	MOV R0, #0x13		; addr
 	ACALL LCDWRITE_CODE_L
-	
 	; get frame offset
-	;MOV A, R4
-	;MOV R1, A		; set start address
-	;MOV A, @R1			; read data
+	MOV R1, #ADDR_MAN_FRAME
+	MOV A, @R1
+	MOV R5, A		; ADDR_MAN_FRAME
+	; next frame
+	INC R5		; R5 = frame num
 	
 	; кадр анимции
 	;если ADDR_MAN_FLAG == 1, ADDR_MAN_FRAME++; если кончились кадры на полет (ADDR_MAN_FRAME == DDL_MAN_FRAMES), то ADDR_MAN_FLAG = 0, ADDR_MAN_FRAME = 0
-	;ADDR_MAN_FRAME
 	
+	; если нет сигнала прыжка, то 0 кадр
+	MOV R1, #ADDR_MAN_FLAG
+	MOV A, @R1
+	CJNE A, #0, mmm_not_fr
+		MOV R5, #0
+	mmm_not_fr:
+	
+	; кончились кадры
+	CJNE R5, #DDL_MAN_FRAMES, ddm_fr
+		MOV R5, #0
+		; приземлились, сбрасываем флаг
+		MOV R1, #ADDR_MAN_FLAG
+		MOV @R1, #0
+		; включаем прерывание обратно
+		SETB EX0
+	ddm_fr:
+	
+	MOV A, R5
+	MOV B, #8
+	MUL AB
+	MOV R4, A	; R4 = frame byte step
+	
+	; UP
 	; offset
 	MOV DPTR, #DDD_DATA_MAN_UP 	; start addrs of Man
-	;MOV DPL, A			; set offset
+	MOV A, DPL
+	ADD A, R4	; кадров мало, адресация с нуля (переносов нету)
+	MOV DPL, A
 	; draw
 	MOV R2, #8
 	MOV R3, #0
@@ -680,12 +747,46 @@ DRAW_MAN:
 		INC R3
 		DJNZ R2, _ddro_ag_man
 		
-	; write offset
-	;MOV A, R4
-	;MOV R1, A		; set start address
-	;MOV A, R3
-	;MOV @R1, A	; write data
+	; DOWN
+	MOV DPTR, #DDD_DATA_MAN_DOWN 	; start addrs of Man
+	MOV A, DPL
+	ADD A, R4	; кадров мало, адресация с нуля (переносов нету)
+	MOV DPL, A
 	
+	; запоминаем в регистры все 8 байт нижней части Персонажа (при отрисовки препятсвий учтем и нарисуем и это, и препятствие)
+	; ?? а нужно ли это, если при нахождении на препятствии сразу GameOver ??
+	ACALL SETBANK3
+	MOV A, #0
+	MOVC A, @A+DPTR
+	MOV R0, A
+	MOV A, #1
+	MOVC A, @A+DPTR
+	MOV R1, A
+	MOV A, #2
+	MOVC A, @A+DPTR
+	MOV R2, A
+	MOV A, #3
+	MOVC A, @A+DPTR
+	MOV R3, A
+	MOV A, #4
+	MOVC A, @A+DPTR
+	MOV R4, A
+	MOV A, #5
+	MOVC A, @A+DPTR
+	MOV R5, A
+	MOV A, #6
+	MOVC A, @A+DPTR
+	MOV R6, A
+	MOV A, #7
+	MOVC A, @A+DPTR
+	MOV R7, A
+	ACALL SETBANK0
+	;-------------------------
+		
+	; save
+	MOV R1, #ADDR_MAN_FRAME	
+	MOV A, R5
+	MOV @R1, A
 	RET
 	
 
@@ -696,32 +797,60 @@ DRAW_MAN:
 
 
 ;; man 
-DDL_MAN_FRAMES	EQU 0x09	; 9 кадров на анимацию прыжка (собственно и длина прыжка)
-; TODO: !!!! check mem !!!!
-DDD_DATA_MAN_DOWN	EQU 0x5E5	; нижняя часть по кадрам
-ORG 0x5E5
+DDL_MAN_FRAMES	EQU 0x18	; 24 кадра на анимацию прыжка (собственно и длина прыжка)
+DDD_DATA_MAN_DOWN	EQU 0x400	; нижняя часть по кадрам	(нижний DPL адрес должен быть ближе к 0, чтобы проще складывать адрес в 8 битке)
+ORG 0x400
 	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
-	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
-	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
-	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
-	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
-	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
-	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
-	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
+	DB 0x00, 0x42, 0x22, 0x1E, 0x0F, 0x1E, 0x22, 0x42
+	DB 0x00, 0x04, 0x02, 0x02, 0x01, 0x01, 0x02, 0x04
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x04, 0x02, 0x02, 0x01, 0x01, 0x02, 0x04
+	DB 0x00, 0x42, 0x22, 0x1E, 0x0F, 0x1E, 0x22, 0x42
 	DB 0x00, 0x04, 0xC2, 0x3C, 0x1F, 0x3C, 0xC2, 0x04
 
-DDD_DATA_MAN_UP	EQU 0x62D		; верхняя часть по кадрам
-ORG 0x62D
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	DB 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00
-	
+DDD_DATA_MAN_UP	EQU 0x500		; верхняя часть по кадрам (нижний DPL адрес должен быть ближе к 0, чтобы проще складывать адрес в 8 битке)
+ORG 0x500
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x20, 0x20, 0xE0, 0xF8, 0xE0, 0x20, 0x20
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x30, 0x22, 0x24, 0x1C, 0x1F, 0x34, 0x22, 0x30
+	DB 0x00, 0x20, 0x20, 0xE0, 0xF8, 0xE0, 0x20, 0x20
+	DB 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00
+	DB 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 
 ;; obstacles
 ; тут стоит переделать, чтобы хранить ID на объекты, увеличив длину уровня в рамках байта (для скролла)
