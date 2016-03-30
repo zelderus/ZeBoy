@@ -55,7 +55,9 @@
 ; ++++++++++++++++++++++++++++++++++++++++++++++++++++
 ; constants
 	FIRSTADDRIGHT		EQU	0x13	;0x00 0x13 !!! WTF !!!
+	MANRUNFRAMES		EQU 0x03
 	
+	; RAM
 	ADDR_GAME_FLAG		EQU 0x40
 	ADDR_OFFSET_AIR		EQU 0x41
 	ADDR_OFFSET_GRN		EQU 0x42
@@ -63,7 +65,10 @@
 	ADDR_OFFSET_OBS_FR	EQU 0x44
 	ADDR_MAN_FRAME		EQU 0x45
 	ADDR_MAN_FLAG		EQU 0x46
-	ADDR_MAN_OBST		EQU 0x47
+	ADDR_MAN_FRAMERUN	EQU 0x47
+	ADDR_MAN_CFRUN		EQU 0x48
+	ADDR_MAN_OBST		EQU 0x49
+	
 
 ORG 0x00
 	LJMP MAIN
@@ -140,11 +145,14 @@ RESETGAME:
 	MOV @R1, #0x00		; write data
 	MOV R1, #ADDR_OFFSET_OBS_FR		; set address
 	MOV @R1, #0x00		; write data
-	
 	MOV R1, #ADDR_MAN_FRAME		; set address
 	MOV @R1, #0x00		; write data
 	MOV R1, #ADDR_MAN_FLAG		; set address
 	MOV @R1, #0x00		; write data
+	MOV R1, #ADDR_MAN_FRAMERUN		; set address
+	MOV @R1, #0x00		; write data
+	MOV R1, #ADDR_MAN_CFRUN		; set address
+	MOV @R1, #MANRUNFRAMES		; write data
 	MOV R1, #ADDR_MAN_OBST		; set address
 	MOV @R1, #0x00		; write data
 	RET
@@ -607,7 +615,8 @@ DRAW_OBST:
 		; если не прыгаем
 		;ADDR_MAN_FLAG == 0
 		
-		
+
+	
 		; если мы в позиции Персонажа, то учитываем и его спрайт
 		; ?? а надо ли это, если сразу GameOver когда на этой позиции ??
 		CJNE R3, #0, _ddro_mm_0
@@ -666,6 +675,8 @@ DRAW_OBST:
 			ORL A, R0
 			MOV R0, A
 		_ddro_mm_7:
+		
+		_ddf_llop:
 		;-------------------------
 		
 		
@@ -705,11 +716,12 @@ DRAW_MAN:
 	; кадр анимции
 	;если ADDR_MAN_FLAG == 1, ADDR_MAN_FRAME++; если кончились кадры на полет (ADDR_MAN_FRAME == DDL_MAN_FRAMES), то ADDR_MAN_FLAG = 0, ADDR_MAN_FRAME = 0
 	
-	; если нет сигнала прыжка, то 0 кадр
+	; если нет сигнала прыжка, то 0 кадр (идем на ветку бега)
 	MOV R1, #ADDR_MAN_FLAG
 	MOV A, @R1
 	CJNE A, #0, mmm_not_fr
 		MOV R5, #0
+		JMP _man_run	; анимация бега
 	mmm_not_fr:
 	
 	; кончились кадры
@@ -722,11 +734,11 @@ DRAW_MAN:
 		SETB EX0
 	ddm_fr:
 	
+	; стопка кадров прыжка
 	MOV A, R5
 	MOV B, #8
 	MUL AB
 	MOV R4, A	; R4 = frame byte step
-	
 	; UP
 	; offset
 	MOV DPTR, #DDD_DATA_MAN_UP 	; start addrs of Man
@@ -746,13 +758,71 @@ DRAW_MAN:
 		; next addr
 		INC R3
 		DJNZ R2, _ddro_ag_man
-		
 	; DOWN
 	MOV DPTR, #DDD_DATA_MAN_DOWN 	; start addrs of Man
 	MOV A, DPL
 	ADD A, R4	; кадров мало, адресация с нуля (переносов нету)
 	MOV DPL, A
 	
+	JMP man_down_inbank	; перескакиваем ветку бега
+	
+	;
+	; анимация бега (если не было прыжка)
+	;
+	_man_run:
+		; DOWN
+		; задерка на смену кадров
+		MOV R1, #ADDR_MAN_CFRUN
+		MOV A, @R1
+		DEC A
+		MOV @R1, A	; save pause
+		CJNE A, #0, man_run_norres
+			; меняем кадр
+			MOV A, #MANRUNFRAMES	; reset
+			MOV @R1, A				; save pause
+			;
+			MOV R1, #ADDR_MAN_FRAMERUN
+			MOV A, @R1
+			XRL A, #0x01	; смена кадра бега
+			MOV @R1, A
+			;MOV B, #8
+			;MUL AB
+			;MOV DPTR, #DDD_DATA_MAN_RUN 
+			;ADD A, DPL
+			;MOV DPL, A
+			JMP man_run_dr
+			
+		man_run_norres:	
+			; не меняем кадр
+			MOV R1, #ADDR_MAN_FRAMERUN
+			MOV A, @R1
+			;MOV B, #8
+			;MUL AB
+			;MOV DPTR, #DDD_DATA_MAN_RUN 
+			;ADD A, DPL
+			;MOV DPL, A
+			
+			
+		man_run_dr:
+			MOV B, #8
+			MUL AB
+			MOV DPTR, #DDD_DATA_MAN_RUN 
+			ADD A, DPL
+			MOV DPL, A
+						
+		;MOV R1, #ADDR_MAN_FRAMERUN
+		;MOV A, @R1
+		;XRL A, #0x01	; смена кадра бега
+		;MOV @R1, A
+		;MOV B, #8
+		;MUL AB
+		;MOV DPTR, #DDD_DATA_MAN_RUN 
+		;ADD A, DPL
+		;MOV DPL, A
+	
+	
+	
+	man_down_inbank:
 	; запоминаем в регистры все 8 байт нижней части Персонажа (при отрисовки препятсвий учтем и нарисуем и это, и препятствие)
 	; ?? а нужно ли это, если при нахождении на препятствии сразу GameOver ??
 	ACALL SETBANK3
@@ -797,6 +867,11 @@ DRAW_MAN:
 
 
 ;; man 
+DDD_DATA_MAN_RUN	EQU 0x3F0
+ORG 0x3F0
+	DB 0x00, 0x44, 0x4A, 0x3E, 0x0F, 0x1E, 0x24, 0xC0
+	DB 0x00, 0x20, 0x3E, 0xEF, 0x3E, 0x04, 0x02, 0x00
+	
 DDL_MAN_FRAMES	EQU 0x18	; 24 кадра на анимацию прыжка (собственно и длина прыжка)
 DDD_DATA_MAN_DOWN	EQU 0x400	; нижняя часть по кадрам	(нижний DPL адрес должен быть ближе к 0, чтобы проще складывать адрес в 8 битке)
 ORG 0x400
