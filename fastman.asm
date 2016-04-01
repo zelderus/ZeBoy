@@ -2,9 +2,11 @@
 
 ; ######################################################
 ;
-;	Программа под MK AT89C2051 
-;	для работы с дисплеем MT-12232A
+;	Игра под MK AT89C2051 
+;	демострационная игра на МК с использованием дисплея
 ;
+;	Версия: 1.0
+;		-без видео буфера
 ;
 ; ZeLDER
 ; ######################################################
@@ -157,8 +159,19 @@ RESETGAME:
 	MOV @R1, #0x00		; write data
 	RET
 	
+NEWGAME:
+	ACALL RESETGAME
+	ACALL LCDCLEAR
+	ACALL DRAW_TABLE
+	; прерывания
+	;SETB EX0
+	RET
 	
 	
+	
+;
+; Основной цикл игры
+;
 MAINLOOP:
 	ACALL LCDCLEAR
 	ACALL DRAW_TABLE ; static table
@@ -363,8 +376,8 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;s_mtE(1)
 	SETB LCD_E
 	;s_delayNs(200.0 - 40.0 - 160.0) #2000.0 - 40.0 - 160.0
-	;MOV A, #10
-	;ACALL DELAYNS
+	MOV A, #10
+	ACALL DELAYNS
 	RET
 LCDWRITE_CODE_L:	; R0 = data byte
 	MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=0)
@@ -467,15 +480,12 @@ LCDDRAW:
 ; рисуем правую часть экрана, статика (рамка)
 ;
 DRAW_TABLE:
-
 	; top
 	MOV R3, #0xB8
 	ACALL DRAW_TABLE_ROW
-		
 	; bottom
 	MOV R3, #0xBB
 	ACALL DRAW_TABLE_ROW
-		
 	RET
 	
 DRAW_TABLE_ROW: ; R3 = page (0xB8 .. 0xBB)
@@ -565,8 +575,21 @@ DRAW_RODR_L:
 	RET
 	
 	
-	
-	
+;	
+; проверка столкновений
+;	R0, R5
+; return: R6 = 1 если не прыгнули и под нами препятствие
+OBST_COLLISION:
+	CJNE R0, #0x00, _dd_ll_1	; 1. если тут есть препятствие
+	MOV R6, #0
+	RET
+	_dd_collis:
+		MOV R6, #1
+		RET
+	_dd_ll_1:
+		CJNE R5, #1, _dd_collis	; 2. и если мы не прыгали
+		MOV R6, #0
+	RET
 	
 ;
 ; рисуем преграды
@@ -589,7 +612,7 @@ DRAW_OBST:
 	CJNE A, #DDL_OBST_ROWS, _ddro_obt_rrf
 		MOV A, #0
 	_ddro_obt_rrf:
-	MOV R4, A
+	MOV R4, A	;(R4)
 	MOV A, DPL
 	; сложение больше байта !!!
 	ADD A, R4
@@ -598,28 +621,39 @@ DRAW_OBST:
 		INC DPH
 	_ddro_obt_jjb:
 	
+	; в прыжке ли (R5)
+	MOV R1, #ADDR_MAN_FLAG
+	MOV A, @R1
+	MOV R5, A
+	
+	; сбрасываем регистр проверки столкновений (R6)
+	;MOV R6, #0
+	
+	JMP _dd_normalgo
+	; были не в прыжке, и под нами препятствие
+	_dd_gameover:
+		ACALL DRAW_GAMEOVER
+		RET
+			
+	_dd_normalgo:
 	; draw
 	MOV R2, #61
 	MOV R3, #0
-	_ddro_ag_obt:
+	_ddro_ag_obt:	; !! этот цикл должен быть прям байтик в байтик по размеру (чтобы длины прыжков хватило)
 		; addr
 		MOV A, R3
 		MOVC A, @A+DPTR
-		; draw
+		; obstacle byte sprite (R0)
 		MOV R0, A
-		;ACALL LCDWRITE_DATA_L
-		
-		; TODO: занести в память флаг, если мы на позиции Man (под ним) !!!!!!!!
-		; проверяем 8 бит
-		; ADDR_MAN_OBST
-		; если не прыгаем
-		;ADDR_MAN_FLAG == 0
-		
 
-	
+
 		; если мы в позиции Персонажа, то учитываем и его спрайт
 		; ?? а надо ли это, если сразу GameOver когда на этой позиции ??
 		CJNE R3, #0, _ddro_mm_0
+			; проверка столкновения
+			ACALL OBST_COLLISION
+			CJNE R6, #0, _dd_gameover
+			; конец проверки столкновения
 			ACALL SETBANK3
 			MOV A, R0
 			ACALL SETBANK0
@@ -627,6 +661,10 @@ DRAW_OBST:
 			MOV R0, A
 		_ddro_mm_0:
 		CJNE R3, #1, _ddro_mm_1
+			; проверка столкновения
+			ACALL OBST_COLLISION
+			CJNE R6, #0, _dd_gameover
+			; конец проверки столкновения
 			ACALL SETBANK3
 			MOV A, R1
 			ACALL SETBANK0
@@ -634,6 +672,10 @@ DRAW_OBST:
 			MOV R0, A
 		_ddro_mm_1:
 		CJNE R3, #2, _ddro_mm_2
+			; проверка столкновения
+			ACALL OBST_COLLISION
+			CJNE R6, #0, _dd_gameover
+			; конец проверки столкновения
 			ACALL SETBANK3
 			MOV A, R2
 			ACALL SETBANK0
@@ -641,6 +683,10 @@ DRAW_OBST:
 			MOV R0, A
 		_ddro_mm_2:
 		CJNE R3, #3, _ddro_mm_3
+			; проверка столкновения
+			ACALL OBST_COLLISION
+			CJNE R6, #0, _dd_gameover
+			; конец проверки столкновения
 			ACALL SETBANK3
 			MOV A, R3
 			ACALL SETBANK0
@@ -648,6 +694,10 @@ DRAW_OBST:
 			MOV R0, A
 		_ddro_mm_3:
 		CJNE R3, #4, _ddro_mm_4
+			; проверка столкновения
+			ACALL OBST_COLLISION
+			CJNE R6, #0, _dd_gameover
+			; конец проверки столкновения
 			ACALL SETBANK3
 			MOV A, R4
 			ACALL SETBANK0
@@ -655,6 +705,10 @@ DRAW_OBST:
 			MOV R0, A
 		_ddro_mm_4:
 		CJNE R3, #5, _ddro_mm_5
+			; проверка столкновения
+			ACALL OBST_COLLISION
+			CJNE R6, #0, _dd_gameover
+			; конец проверки столкновения
 			ACALL SETBANK3
 			MOV A, R5
 			ACALL SETBANK0
@@ -662,6 +716,10 @@ DRAW_OBST:
 			MOV R0, A
 		_ddro_mm_5:
 		CJNE R3, #6, _ddro_mm_6
+			; проверка столкновения
+			ACALL OBST_COLLISION
+			CJNE R6, #0, _dd_gameover
+			; конец проверки столкновения
 			ACALL SETBANK3
 			MOV A, R6
 			ACALL SETBANK0
@@ -669,6 +727,10 @@ DRAW_OBST:
 			MOV R0, A
 		_ddro_mm_6:
 		CJNE R3, #7, _ddro_mm_7
+			; проверка столкновения
+			ACALL OBST_COLLISION
+			CJNE R6, #0, _dd_gameover
+			; конец проверки столкновения
 			ACALL SETBANK3
 			MOV A, R7
 			ACALL SETBANK0
@@ -709,7 +771,7 @@ DRAW_MAN:
 	; get frame offset
 	MOV R1, #ADDR_MAN_FRAME
 	MOV A, @R1
-	MOV R5, A		; ADDR_MAN_FRAME
+	MOV R5, A
 	; next frame
 	INC R5		; R5 = frame num
 	
@@ -719,10 +781,10 @@ DRAW_MAN:
 	; если нет сигнала прыжка, то 0 кадр (идем на ветку бега)
 	MOV R1, #ADDR_MAN_FLAG
 	MOV A, @R1
-	CJNE A, #0, mmm_not_fr
+	CJNE A, #0, mmm_in_jump
 		MOV R5, #0
 		JMP _man_run	; анимация бега
-	mmm_not_fr:
+	mmm_in_jump:
 	
 	; кончились кадры
 	CJNE R5, #DDL_MAN_FRAMES, ddm_fr
@@ -836,13 +898,92 @@ DRAW_MAN:
 	MOV @R1, A
 	RET
 	
+	
+
+;
+; потрачено
+;
+DRAW_GAMEOVER:
+	; stop interr
+	CLR EX0
+	; DRAW GAMEOVER
+	ACALL LCDCLEAR
+	;============== пишем  ==================
+	;; LEFT
+	MOV R0, #0xE2		; reset addr
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0xBA
+	ACALL LCDWRITE_CODE_L
+	MOV R0, #0x13
+	ACALL LCDWRITE_CODE_L
+	; draw
+	; левую часть букв
+	MOV R3, #29	; space
+	_dr_gmo_f31:
+		MOV R0, #0x00
+		ACALL LCDWRITE_DATA_L
+		DJNZ R3, _dr_gmo_f31
+	; буквы
+	MOV R4, #0
+	MOV R3, #31
+	_dr_gmo_left:
+		MOV DPTR, #DDD_DATA_GMO 
+		MOV A, R4
+		MOVC A, @A+DPTR
+		MOV R0, A
+		ACALL LCDWRITE_DATA_L
+		INC R4
+		DJNZ R3, _dr_gmo_left
+	; RIGHT
+	;MOV R0, #0xE2		; reset addr
+	;ACALL LCDWRITE_CODE_R
+	;MOV R0, #0xBA
+	ACALL LCDWRITE_CODE_R
+	MOV R0, #FIRSTADDRIGHT
+	ACALL LCDWRITE_CODE_R
+	; draw
+	; правую часть букв
+	;MOV R4, #0
+	MOV R3, #29
+	_dr_gmo_right:
+		MOV DPTR, #DDD_DATA_GMO 
+		MOV A, R4
+		MOVC A, @A+DPTR
+		MOV R0, A
+		ACALL LCDWRITE_DATA_R
+		INC R4
+		DJNZ R3, _dr_gmo_right
+	;============== закончили писать ==================
+	; pause
+	MOV A, #60
+	ACALL DELAYS
+	; reset data
+	ACALL NEWGAME
+	; прерывания
+	SETB EX0
+	RET
+	
+	
 
 
 ;#################################################
 ;##############    DATA   ########################
 ;#################################################
 
-
+; game over text
+DDD_DATA_GMO	EQU 0x3A0
+ORG 0x3A0
+	DB 0x7E, 0x7E, 0x02, 0x02, 0x7E, 0x7E, 0x00
+	DB 0x7E, 0x7E, 0x42, 0x42, 0x7E, 0x7E, 0x00	
+	DB 0x02, 0x02, 0x7E, 0x7E, 0x02, 0x02, 0x00	
+	DB 0x7E, 0x7E, 0x12, 0x12, 0x1E, 0x1E, 0x00	
+	DB 0x70, 0x7C, 0x0A							
+	DB 0x0A, 0x7C, 0x70, 0x00					
+	DB 0x0E, 0x0E, 0x08, 0x7E, 0x7E, 0x00		
+	DB 0x7E, 0x7E, 0x4A, 0x42, 0x00				
+	DB 0x7E, 0x7E, 0x08, 0x08, 0x7E, 0x7E, 0x00
+	DB 0x7E, 0x7E, 0x42, 0x42, 0x7E, 0x7E, 0x00	
+	
 ;; man 
 DDD_DATA_MAN_RUN	EQU 0x3F0
 ORG 0x3F0
