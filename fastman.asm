@@ -56,7 +56,7 @@
 	
 ; ++++++++++++++++++++++++++++++++++++++++++++++++++++
 ; constants
-	FIRSTADDRIGHT		EQU	0x00	;0x00 0x13 !!! WTF !!!
+	FIRSTADDRIGHT		EQU	0x13	;0x00 0x13 !!! WTF !!!
 	MANRUNFRAMES		EQU 0x03
 	
 	; RAM
