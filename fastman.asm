@@ -376,7 +376,8 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;s_mtE(1)
 	SETB LCD_E
 	;s_delayNs(200.0 - 40.0 - 160.0) #2000.0 - 40.0 - 160.0
-	MOV A, #200
+	;MOV A, #10 ;100
+	MOV A, #1
 	ACALL DELAYNS
 	RET
 LCDWRITE_CODE_L:	; R0 = data byte
@@ -910,8 +911,8 @@ DRAW_GAMEOVER:
 	ACALL LCDCLEAR
 	;============== пишем  ==================
 	;; LEFT
-	MOV R0, #0xE2		; reset addr
-	ACALL LCDWRITE_CODE_L
+	;MOV R0, #0xE2		; reset addr
+	;ACALL LCDWRITE_CODE_L
 	MOV R0, #0xBA
 	ACALL LCDWRITE_CODE_L
 	MOV R0, #0x13
@@ -935,8 +936,8 @@ DRAW_GAMEOVER:
 		INC R4
 		DJNZ R3, _dr_gmo_left
 	; RIGHT
-	MOV R0, #0xE2		; reset addr
-	ACALL LCDWRITE_CODE_R
+	;MOV R0, #0xE2		; reset addr
+	;ACALL LCDWRITE_CODE_R
 	MOV R0, #0xBA
 	ACALL LCDWRITE_CODE_R
 	MOV R0, #FIRSTADDRIGHT
@@ -955,7 +956,7 @@ DRAW_GAMEOVER:
 		DJNZ R3, _dr_gmo_right
 	;============== закончили писать ==================
 	; pause
-	MOV A, #60
+	MOV A, #10
 	ACALL DELAYS
 	; reset data
 	ACALL NEWGAME
