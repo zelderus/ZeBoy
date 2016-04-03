@@ -376,7 +376,7 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;s_mtE(1)
 	SETB LCD_E
 	;s_delayNs(200.0 - 40.0 - 160.0) #2000.0 - 40.0 - 160.0
-	MOV A, #10
+	MOV A, #200
 	ACALL DELAYNS
 	RET
 LCDWRITE_CODE_L:	; R0 = data byte
@@ -935,9 +935,9 @@ DRAW_GAMEOVER:
 		INC R4
 		DJNZ R3, _dr_gmo_left
 	; RIGHT
-	;MOV R0, #0xE2		; reset addr
-	;ACALL LCDWRITE_CODE_R
-	;MOV R0, #0xBA
+	MOV R0, #0xE2		; reset addr
+	ACALL LCDWRITE_CODE_R
+	MOV R0, #0xBA
 	ACALL LCDWRITE_CODE_R
 	MOV R0, #FIRSTADDRIGHT
 	ACALL LCDWRITE_CODE_R
