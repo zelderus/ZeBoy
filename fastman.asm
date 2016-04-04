@@ -56,7 +56,7 @@
 	
 ; ++++++++++++++++++++++++++++++++++++++++++++++++++++
 ; constants
-	FIRSTADDRIGHT		EQU	0x13	;0x00 0x13 !!! WTF !!!
+	FIRSTADDRIGHT		EQU	0x00	;0x00 0x13 !!! WTF !!!
 	MANRUNFRAMES		EQU 0x03
 	
 	; RAM
@@ -381,22 +381,18 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;ACALL DELAYNS
 	RET
 LCDWRITE_CODE_L:	; R0 = data byte
-	;ACALL LCDBUSY
 	MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=0)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_CODE_R:	; R0 = data byte
-	;ACALL LCDBUSY
 	MOV R1, #0x15 ;#0b00010101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=0)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_L:	; R0 = data byte
-	;ACALL LCDBUSY
 	MOV R1, #0x3D ;#0b00111101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_R:	; R0 = data byte
-	;ACALL LCDBUSY
 	MOV R1, #0x35 ;#0b00110101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
