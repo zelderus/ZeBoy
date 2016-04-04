@@ -112,12 +112,10 @@ MAIN:
 	
 MAINLOOP:
 	ACALL LCDCLEAR
-	;ACALL LCDDRAW ; Draw once
+	ACALL LCDDRAW ; Draw once
 	DONO:
-		;MOV R5, #10	; cycle
 		;ACALL LCDDRAW - Do nothing
-	
-		;DJNZ R5, DONO
+
 		JMP DONO
 	RET
 	
@@ -242,9 +240,10 @@ LCDINIT:
 	MOV R0, #0xC0
 	ACALL LCDWRITE_CODE_L
 	ACALL LCDWRITE_CODE_R
-	;
+	; ADC select
 	MOV R0, #0xA1
 	ACALL LCDWRITE_CODE_L
+	MOV R0, #0xA0
 	ACALL LCDWRITE_CODE_R
 	; display on
 	MOV R0, #0xAF
@@ -349,6 +348,18 @@ LCDCLEAR:
 	ACALL STEPEND
 	RET
 	
+; ----------------------	
+; Занят ли дисплей
+; ----------------------
+LCDBUSY:
+	;PUSH ACC
+	;_lcdbusy_test:
+	;	CLR A
+	;	MOV DPTR, #lll
+	;	MOVC A, @A+DPTR
+	;	JB ACC.7, _lcdbusy_test
+	;POP ACC
+	RET
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;							;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	     end of DRIVER		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -384,7 +395,7 @@ LCDDRAW:
 
 	; first addr
 	MOV DPTR, #0x700	
-	MOV R3, #3	; num words
+	MOV R3, #3	; num chars
 	DDRF:
 		ACALL DRSYMBL
 		DJNZ R3, DDRF

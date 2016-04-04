@@ -345,9 +345,10 @@ LCDINIT:
 	MOV R0, #0xC0
 	ACALL LCDWRITE_CODE_L
 	ACALL LCDWRITE_CODE_R
-	;
+	; ADC select
 	MOV R0, #0xA1
 	ACALL LCDWRITE_CODE_L
+	MOV R0, #0xA0			; !!!!!!!!!!1
 	ACALL LCDWRITE_CODE_R
 	; display on
 	MOV R0, #0xAF
@@ -366,8 +367,8 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;s_mtData(b)
 	MOV P1, R0
 	;s_delayNs(40.0)	#>40
-	MOV A, #40
-	ACALL DELAYNS
+	;MOV A, #40					; !!!!!!!! TEST !!!!!!
+	;ACALL DELAYNS
 	;s_mtE(0)
 	CLR LCD_E
 	;s_delayNs(160.0)	#>160
@@ -376,23 +377,26 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;s_mtE(1)
 	SETB LCD_E
 	;s_delayNs(200.0 - 40.0 - 160.0) #2000.0 - 40.0 - 160.0
-	;MOV A, #10 ;100
-	MOV A, #1
-	ACALL DELAYNS
+	;MOV A, #1
+	;ACALL DELAYNS
 	RET
 LCDWRITE_CODE_L:	; R0 = data byte
+	;ACALL LCDBUSY
 	MOV R1, #0x1D ;#0b00011101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=0)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_CODE_R:	; R0 = data byte
+	;ACALL LCDBUSY
 	MOV R1, #0x15 ;#0b00010101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=0)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_L:	; R0 = data byte
+	;ACALL LCDBUSY
 	MOV R1, #0x3D ;#0b00111101 ;(E=1, RW=0, INT0=1, CS=1, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
 LCDWRITE_DATA_R:	; R0 = data byte
+	;ACALL LCDBUSY
 	MOV R1, #0x35 ;#0b00110101 ;(E=1, RW=0, INT0=1, CS=0, RES=1, A0=1)
 	ACALL LCDWRITE
 	RET
@@ -911,8 +915,8 @@ DRAW_GAMEOVER:
 	ACALL LCDCLEAR
 	;============== пишем  ==================
 	;; LEFT
-	;MOV R0, #0xE2		; reset addr
-	;ACALL LCDWRITE_CODE_L
+	MOV R0, #0xE2		; reset addr !!!!
+	ACALL LCDWRITE_CODE_L
 	MOV R0, #0xBA
 	ACALL LCDWRITE_CODE_L
 	MOV R0, #0x13
