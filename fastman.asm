@@ -56,7 +56,8 @@
 	
 ; ++++++++++++++++++++++++++++++++++++++++++++++++++++
 ; constants
-	FIRSTADDRIGHT		EQU	0x00	;0x00 0x13 !!! WTF !!!
+	FIRSTADDLEFT		EQU	0x13
+	FIRSTADDRIGHT		EQU	0x00
 	MANRUNFRAMES		EQU 0x03
 	
 	; RAM
@@ -367,8 +368,8 @@ LCDWRITE:  ; R0 = data byte, R1 = cmd
 	;s_mtData(b)
 	MOV P1, R0
 	;s_delayNs(40.0)	#>40
-	;MOV A, #40					; !!!!!!!! TEST !!!!!!
-	;ACALL DELAYNS
+	MOV A, #40					; !!!!!!!! TEST !!!!!!
+	ACALL DELAYNS
 	;s_mtE(0)
 	CLR LCD_E
 	;s_delayNs(160.0)	#>160
@@ -414,7 +415,7 @@ LCDCLEAR:
 		ORL A, #0xB8
 		MOV R0, A
 		ACALL LCDWRITE_CODE_L
-		MOV R0, #0x13
+		MOV R0, #FIRSTADDLEFT
 		ACALL LCDWRITE_CODE_L
 		; left draw
 		MOV R0, #0x00 	; clear symbol
@@ -542,7 +543,7 @@ DRAW_RODR_L:
 	MOV A, R3
 	MOV R0, A		; page
 	ACALL LCDWRITE_CODE_L
-	MOV R0, #0x13		; addr
+	MOV R0, #FIRSTADDLEFT		; addr
 	ACALL LCDWRITE_CODE_L
 	; get frame offset
 	MOV A, R4
@@ -602,7 +603,7 @@ DRAW_OBST:
 	MOV A, R3
 	MOV R0, #0xBA		; page 3
 	ACALL LCDWRITE_CODE_L
-	MOV R0, #0x13		; addr
+	MOV R0, #FIRSTADDLEFT		; addr
 	ACALL LCDWRITE_CODE_L
 	; offset
 	MOV DPTR, #DDD_DATA_OBST 
@@ -767,7 +768,7 @@ DRAW_MAN:
 	ACALL LCDWRITE_CODE_L
 	MOV R0, #0xB9		; page 2
 	ACALL LCDWRITE_CODE_L
-	MOV R0, #0x13		; addr
+	MOV R0, #FIRSTADDLEFT		; addr
 	ACALL LCDWRITE_CODE_L
 	; get frame offset
 	MOV R1, #ADDR_MAN_FRAME
@@ -915,11 +916,11 @@ DRAW_GAMEOVER:
 	ACALL LCDWRITE_CODE_L
 	MOV R0, #0xBA
 	ACALL LCDWRITE_CODE_L
-	MOV R0, #0x13
+	MOV R0, #FIRSTADDLEFT
 	ACALL LCDWRITE_CODE_L
 	; draw
 	; левую часть букв
-	MOV R3, #29	; space
+	MOV R3, #30	; space
 	_dr_gmo_f31:
 		MOV R0, #0x00
 		ACALL LCDWRITE_DATA_L
