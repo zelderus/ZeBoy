@@ -39,7 +39,21 @@
 			<h2>Простая программа на ASM</h2>
 			<div class="articlebody">
 				<p>Код ASM приложения <span class="span_file">mktolcd.asm</span> (а также бинарника для записи на МК через программатор) на <a href="https://github.com/zelderus/ZeBoy/blob/master/src_mk/mktolcd.asm" target="_blank">GIT</a>.</p>
-				<p>Программа компилятор с ASM в HEX - <a href="http://www.atmel.com/tools/C51ASM.aspx" target="_blank">скачать</a>.</p>
+				<p>
+					<div>Программа компилятор с ASM в HEX - <a href="http://www.atmel.com/tools/C51ASM.aspx" target="_blank">скачать</a>.</div>
+					<div>Параметры компилятора (с параметрами <span class="span_data">-I</span> и <span class="span_data">--target</span>), пример (.bat файл):</div>
+					<div class="code_simple">
+						<textarea class="txt_code" style="height:130px;">
+		@echo off
+		set asmpath=D:\Tools\c51asm
+		set propath=D:\Projects\zeboy\src_mk
+		cd %asmpath%\BIN\
+		c51asm %propath%\mktolcd.asm -I %asmpath%\INC\at89c2051.inc --target at89c2051
+		pause
+
+						</textarea>
+					</div>
+				</p>
 				<p>
 					<div>Программа конвертер из HEX в BIN - <a href="http://advantex.ru/joom/content/view/78/69/" target="_blank">скачать</a>.</div>
 					<div>Файл на выводе необходим для программы прошивки от программатора <span class="span_device">PR8051.1</span>
