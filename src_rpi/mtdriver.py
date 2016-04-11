@@ -73,6 +73,8 @@ def lcdInit():
 
 # распиновка Raspberry
 def lcdSetPins(a0, rw, e, res, cs, d0, d1, d2, d3, d4, d5, d6, d7):
+	global _p_a0,_p_rw,_p_e,_p_res,_p_cs,_db0,_db1,_db2,_db3,_db4,_db5,_db6,_db7
+
 	_p_a0 = a0
 	_p_rw = rw
 	_p_e = e
